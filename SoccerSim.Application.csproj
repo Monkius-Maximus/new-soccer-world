@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>SoccerSim.Application</RootNamespace>
+    <AssemblyName>SoccerSim.Application</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SoccerSim.Core/SoccerSim.Core.csproj" />
+  </ItemGroup>
+</Project>

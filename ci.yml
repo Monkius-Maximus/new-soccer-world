@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  foundation:
+    name: Foundation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10.0.302
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.302
+
+      - name: Restore
+        run: dotnet restore SoccerDreamGame.sln
+
+      - name: Build
+        run: dotnet build SoccerDreamGame.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test SoccerDreamGame.sln --configuration Release --no-build --no-restore
+
+      - name: Build world template
+        run: dotnet run --project tools/SoccerSim.WorldBuilder/SoccerSim.WorldBuilder.csproj --configuration Release --no-build -- --output artifacts/world_template.db
+
+      - name: Run deterministic headless slice
+        run: dotnet run --project tools/SoccerSim.HeadlessRunner/SoccerSim.HeadlessRunner.csproj --configuration Release --no-build -- --template artifacts/world_template.db --seed 123456789

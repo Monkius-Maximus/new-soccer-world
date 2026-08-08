@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>SoccerSim.Core</RootNamespace>
+    <AssemblyName>SoccerSim.Core</AssemblyName>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,17 @@
+; Engine configuration file.
+; FOUNDATION-00 smoke-test project.
+config_version=5
+
+[application]
+config/name="SoccerDreamGame"
+run/main_scene="res://Main.tscn"
+
+[display]
+window/size/viewport_width=960
+window/size/viewport_height=540
+window/size/window_width_override=960
+window/size/window_height_override=540
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
