@@ -23,7 +23,8 @@ public sealed class SqliteWorldRepository : IWorldRepository
 
     private static SqliteConnection Open(string databasePath)
     {
-        var connection = new SqliteConnection($"Data Source={databasePath};Mode=ReadWrite");
+        var connection = new SqliteConnection(
+            $"Data Source={databasePath};Mode=ReadWrite;Pooling=False");
         connection.Open();
         using var pragma = connection.CreateCommand();
         pragma.CommandText = "PRAGMA foreign_keys = ON;";

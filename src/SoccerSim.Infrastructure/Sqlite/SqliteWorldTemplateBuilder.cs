@@ -22,7 +22,8 @@ public sealed class SqliteWorldTemplateBuilder
             File.Delete(fullOutputPath);
         }
 
-        using var connection = new SqliteConnection($"Data Source={fullOutputPath};Mode=ReadWriteCreate");
+        using var connection = new SqliteConnection(
+            $"Data Source={fullOutputPath};Mode=ReadWriteCreate;Pooling=False");
         connection.Open();
         Execute(connection, "PRAGMA foreign_keys = ON;");
 
