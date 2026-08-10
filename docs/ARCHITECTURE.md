@@ -31,7 +31,9 @@ Godot presentation
 
 `Core` knows neither Godot nor SQLite. `Application` does not reference Infrastructure. `Infrastructure` does not reference Application or Godot.
 
-The small Godot `CompositionRoot` is deliberately the outermost wiring point. UI scripts do not contain SQL.
+The small Godot `CompositionRoot` is deliberately the outermost wiring point, and the only presentation file allowed to name an Infrastructure type. Scenes obtain the world through the `CareerApplication` use case; they never construct a repository and never contain SQL.
+
+These rules are enforced, not merely documented. `tests/SoccerSim.Architecture.Tests` asserts them against the `.csproj` graph and the source tree on disk rather than against a compiled reference graph, because the compiler only emits references that are actually used — an unused-but-forbidden dependency would slip past assembly-level checks. The suite covers: Core having no project or package references at all, Application referencing only Core, Infrastructure implementing the Core ports without reaching outward, and the Godot layer containing no SQL and no database package.
 
 ## 3. Match isolation
 
@@ -61,6 +63,8 @@ Cross-platform bit-exact determinism is explicitly not promised. The determinist
 
 The fixed timestep is centralized at `SimulationSettings.FixedTimeStepMilliseconds`. Its Foundation value is provisional until MATCH validates gameplay granularity. Once released simulation behavior depends on it, changing it requires a `SimulationVersion` bump.
 
+`DeterminismGuardTests` turns each clause of this contract into a failing build when violated: banned entropy sources (`Random.Shared`, `new Random(`, wall-clock reads, `Guid.NewGuid()`, `Environment.TickCount`, `Stopwatch.GetTimestamp`, `RandomNumberGenerator`) anywhere on the deterministic path, `Dictionary`/`HashSet` in Core, any mutable static field in the Core assembly (found by reflection, ignoring compiler-generated members), and more than one declaration of the fixed timestep.
+
 ## 5. Headless-first simulation
 
 `DeterministicSimulationProbe` is deliberately not football. It proves replayability and headless execution before real match logic exists. MATCH will replace/extend this with football state while preserving the same isolation and deterministic boundaries.
@@ -69,7 +73,9 @@ No `FastMatchSimulation` exists. Performance fidelity alternatives may only be i
 
 ## 6. Godot
 
-Godot is the primary presentation/runtime engine, not the authority for football rules. The Foundation project targets `net10.0` with `Godot.NET.Sdk/4.7.1` and is validated in CI as a normal .NET build. Interactive editor/export validation remains a developer-machine smoke test.
+Godot is the primary presentation/runtime engine, not the authority for football rules. The Foundation project targets `net10.0` with `Godot.NET.Sdk/4.7.1` and is validated in CI as a normal .NET build.
+
+**.NET 10 target validation:** `Godot.NET.Sdk/4.7.1` restores and compiles `game/SoccerDreamGame` against `net10.0` with no errors and no warnings, producing `SoccerDreamGame.dll`. No incompatibility was found, so the target was not lowered. This validates the build target only; interactive editor launch and export-template validation remain a developer-machine smoke test, because a headless CI container has no Godot editor binary.
 
 ## 7. Explicitly deferred
 

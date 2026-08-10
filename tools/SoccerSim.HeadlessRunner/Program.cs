@@ -46,7 +46,20 @@ var first = application.RunFoundationSimulationProbe(career, homeId, awayId, see
 var replay = application.RunFoundationSimulationProbe(career, homeId, awayId, seed, ticks);
 var alternate = application.RunFoundationSimulationProbe(career, homeId, awayId, seed + 1UL, ticks);
 
-Console.WriteLine($"SimulationVersion={first.SimulationVersion}; TickMs={SoccerSim.Core.Simulation.SimulationSettings.FixedTimeStepMilliseconds}");
+// Reproduction record: everything a future run needs to reproduce these digests exactly.
+// The guarantee is same build + same platform/architecture + same initial state + same
+// inputs + same seed. It is deliberately not a cross-platform guarantee.
+Console.WriteLine("--- reproduction record ---");
+Console.WriteLine($"SimulationVersion   = {first.SimulationVersion}");
+Console.WriteLine($"FixedTimeStepMs     = {SoccerSim.Core.Simulation.SimulationSettings.FixedTimeStepMilliseconds}");
+Console.WriteLine($"Ticks               = {first.Ticks}");
+Console.WriteLine($"SchemaVersion       = {career.Save.Metadata.SchemaVersion}");
+Console.WriteLine($"ContentVersion      = {career.Save.Metadata.ContentVersion}");
+Console.WriteLine($"GameVersion         = {career.Save.Metadata.GameVersion}");
+Console.WriteLine($"CareerSeed          = {career.Save.Metadata.CareerSeed}");
+Console.WriteLine($"Runtime             = {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
+Console.WriteLine($"Platform            = {System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier}");
+Console.WriteLine("---------------------------");
 Console.WriteLine($"Seed {seed}: digest={first.Digest:X16}, finalRng={first.FinalRandomState:X16}");
 Console.WriteLine($"Replay {seed}: digest={replay.Digest:X16}, finalRng={replay.FinalRandomState:X16}");
 Console.WriteLine($"Seed {seed + 1UL}: digest={alternate.Digest:X16}, finalRng={alternate.FinalRandomState:X16}");

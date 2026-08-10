@@ -25,12 +25,21 @@ This file describes implementation status, not just ideas.
 | FND-009 | 🟢 | Central fixed simulation timestep |
 | FND-010 | 🟢 | Seeded deterministic RNG + replay test |
 | FND-011 | 🟢 | Headless end-to-end runner |
-| FND-012 | 🟢 | Unit/integration/architecture tests authored |
-| FND-013 | 🟡 | CI — workflow authored; must pass remotely |
-| FND-014 | 🟡 | Godot smoke test — project authored; editor validation pending |
+| FND-012 | 🟢 | Unit/integration/architecture tests — 32 passing; boundary tests verified by deliberate violation injection |
+| FND-013 | 🟡 | CI — workflow authored and locally reproduced step by step; must still pass on GitHub runners |
+| FND-014 | 🟡 | Godot smoke test — `net10.0` + `Godot.NET.Sdk/4.7.1` compiles clean; editor/export validation pending |
 | FND-015 | 🔴 | Asset/render pipeline contract — intentionally removed from Foundation; use an ART spike later |
+| FND-016 | 🟢 | SDK pin relaxed to `10.0.100` / `latestFeature` (see ADR-0001) |
+| FND-017 | 🟢 | Transitive pin of `SQLitePCLRaw.lib.e_sqlite3` 2.1.12 clearing GHSA-2m69-gcr7-jv3q |
 
-**FOUNDATION-00 overall: 🟡** until CI and local Godot editor smoke tests pass.
+### Legend applied to Foundation
+
+- **Decided:** every ADR in `docs/adr` is Accepted.
+- **Planned:** MATCH/PLYR sequence below; no code exists for it.
+- **Implemented:** FND-001…FND-012, FND-016, FND-017.
+- **Tested:** boundaries, determinism contract, match isolation, migrations + seed, career save/checkpoint, headless vertical slice.
+
+**FOUNDATION-00 overall: 🟡** — locally green end to end; stays 🟡 until remote CI is green and the Godot editor smoke test is run on a developer machine. It becomes 🔵 only after MATCH consumes these boundaries without needing to reshape them.
 
 ## Next canonical sequence
 

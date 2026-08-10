@@ -4,7 +4,9 @@ Canonical implementation repository for the offline-first football simulation pr
 
 ## Current status
 
-**🟡 FOUNDATION-00 — in progress / awaiting CI validation**
+**🟡 FOUNDATION-00 — implemented and locally verified; awaiting remote CI + Godot editor validation**
+
+Verified locally on Linux x86_64 with .NET SDK 10.0.110: solution builds with 0 warnings and 0 errors, 32 tests pass, and the headless slice reproduces identical digests across two separate processes for one seed while diverging for another.
 
 The first milestone intentionally contains no real football gameplay. It proves the technical path that later modules depend on:
 
@@ -21,7 +23,7 @@ The first milestone intentionally contains no real football gameplay. It proves 
 ## Technical baseline
 
 - Godot **4.7.1 .NET**
-- .NET SDK **10.0.302** / `net10.0`
+- .NET **10** / `net10.0` (`global.json` pins `10.0.100` with `rollForward: latestFeature`)
 - First-class 1.0 desktop targets: **Windows x86_64** and **Linux x86_64**
 - SQLite is a persistence boundary, never a tick-by-tick simulation dependency
 - Simulation Core is engine-agnostic
@@ -49,6 +51,7 @@ For the Godot smoke test, open `game/SoccerDreamGame/project.godot` using the .N
 - `game/SoccerDreamGame` — Godot .NET presentation smoke test
 - `sql/migrations` — canonical schema evolution
 - `sql/seeds` — canonical foundation seed content
+- `tests/SoccerSim.Architecture.Tests` — layering and determinism-contract tripwires
 - `tests` — boundary, persistence and determinism tests
 - `docs` — architecture, roadmap and accepted ADRs
 

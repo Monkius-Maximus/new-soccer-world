@@ -23,8 +23,9 @@ public partial class Main : Control
 
         try
         {
-            var world = CompositionRoot.LoadWorld(databasePath);
-            var rosters = CompositionRoot.CreateRosterQuery().GetClubRosters(world);
+            // Presentation goes through an Application use case, never through a repository.
+            var career = CompositionRoot.CreateCareerApplication().OpenCareer(databasePath);
+            var rosters = CompositionRoot.CreateRosterQuery().GetClubRosters(career.World);
             label.Text = string.Join(
                 "\n\n",
                 rosters.Select(club =>

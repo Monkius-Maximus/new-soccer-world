@@ -3,10 +3,14 @@ using SoccerSim.Infrastructure.Sqlite;
 
 namespace SoccerDreamGame;
 
+/// <summary>
+/// The single place in the presentation layer that is allowed to know which Infrastructure
+/// adapter implements the Core ports. Scenes depend on Application use cases only, so no
+/// Godot script ever touches a repository, a connection or SQL.
+/// </summary>
 internal static class CompositionRoot
 {
-    public static ClubRosterQueryService CreateRosterQuery() => new();
+    public static CareerApplication CreateCareerApplication() => new(new SqliteCareerStore());
 
-    public static SoccerSim.Core.Domain.WorldState LoadWorld(string databasePath) =>
-        new SqliteWorldRepository().Load(databasePath);
+    public static ClubRosterQueryService CreateRosterQuery() => new();
 }
