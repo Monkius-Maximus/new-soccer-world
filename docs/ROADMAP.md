@@ -25,8 +25,9 @@ This file describes implementation status, not just ideas.
 | FND-009 | 🟢 | Central fixed simulation timestep |
 | FND-010 | 🟢 | Seeded deterministic RNG + replay test |
 | FND-011 | 🟢 | Headless end-to-end runner |
-| FND-012 | 🟢 | Unit/integration/architecture tests — 32 passing; boundary tests verified by deliberate violation injection |
-| FND-013 | 🟡 | CI — workflow authored and locally reproduced step by step; must still pass on GitHub runners |
+| FND-012 | 🟢 | Unit/integration/architecture tests — 34 passing; every tripwire verified by deliberate violation injection |
+| FND-013 | 🟡 | CI — green on Linux; Windows job exposed a real SQLite handle leak, now fixed and guarded |
+| FND-018 | 🟢 | `Pooling=False` on every connection + `PersistenceContractTests` guarding it (Windows file-lock class of bug) |
 | FND-014 | 🟡 | Godot smoke test — `net10.0` + `Godot.NET.Sdk/4.7.1` compiles clean; editor/export validation pending |
 | FND-015 | 🔴 | Asset/render pipeline contract — intentionally removed from Foundation; use an ART spike later |
 | FND-016 | 🟢 | SDK pin relaxed to `10.0.100` / `latestFeature` (see ADR-0001) |

@@ -13,6 +13,12 @@ The project distinguishes persistent authority from session authority:
 
 Current Foundation checkpoints are manual/autosave/save-and-exit/end-of-match/day-advance concepts. Only metadata changes exist today; future career modules will persist dirty world aggregates through this boundary.
 
+### Connection pooling must stay off
+
+`Microsoft.Data.Sqlite` pools connections by default, and a pooled connection keeps the database file handle open after `Dispose`. On Windows — a first-class 1.0 target — an open handle makes the file impossible to copy, delete or replace, which breaks the two operations this architecture depends on most: copying `world_template.db` into a new career, and replacing a career database during Save & Exit. POSIX unlink semantics hide the problem entirely on Linux, so a green Linux run is not evidence.
+
+Every connection string therefore sets `Pooling=False`, and `PersistenceContractTests` fails the build if a new connection factory omits it or if a call site opens a connection outside a `using` scope.
+
 ## 2. Dependency boundaries
 
 ```text
