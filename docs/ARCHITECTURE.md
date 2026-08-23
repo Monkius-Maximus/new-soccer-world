@@ -81,7 +81,9 @@ No `FastMatchSimulation` exists. Performance fidelity alternatives may only be i
 
 Godot is the primary presentation/runtime engine, not the authority for football rules. The Foundation project targets `net10.0` with `Godot.NET.Sdk/4.7.1` and is validated in CI as a normal .NET build.
 
-**.NET 10 target validation:** `Godot.NET.Sdk/4.7.1` restores and compiles `game/SoccerDreamGame` against `net10.0` with no errors and no warnings, producing `SoccerDreamGame.dll`. No incompatibility was found, so the target was not lowered. This validates the build target only; interactive editor launch and export-template validation remain a developer-machine smoke test, because a headless CI container has no Godot editor binary.
+**.NET 10 target validation:** `Godot.NET.Sdk/4.7.1` restores and compiles `game/SoccerDreamGame` against `net10.0` with no errors and no warnings. Beyond compiling, Godot 4.7.1 .NET itself imports the project and runs `Main.tscn` headless, where the scene reaches the Application layer and renders both seeded clubs and all 30 players. No incompatibility was found, so the target was not lowered.
+
+`scripts/godot-smoke-test.sh` performs that run and CI gates on it, so the presentation path is covered by automation rather than by a developer remembering to open the editor. The scene mirrors its rendered text to stdout behind a `[SOCCER-SMOKE]` marker and quits when `SOCCER_SMOKE_EXIT=1`; interactive runs ignore both and stay open. Export-template packaging is still not covered.
 
 ## 7. Explicitly deferred
 

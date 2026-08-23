@@ -26,21 +26,27 @@ This file describes implementation status, not just ideas.
 | FND-010 | 🟢 | Seeded deterministic RNG + replay test |
 | FND-011 | 🟢 | Headless end-to-end runner |
 | FND-012 | 🟢 | Unit/integration/architecture tests — 34 passing; every tripwire verified by deliberate violation injection |
-| FND-013 | 🟡 | CI — green on Linux; Windows job exposed a real SQLite handle leak, now fixed and guarded |
-| FND-018 | 🟢 | `Pooling=False` on every connection + `PersistenceContractTests` guarding it (Windows file-lock class of bug) |
-| FND-014 | 🟡 | Godot smoke test — `net10.0` + `Godot.NET.Sdk/4.7.1` compiles clean; editor/export validation pending |
+| FND-013 | 🟢 | CI — green on ubuntu-latest and windows-latest |
+| FND-014 | 🟢 | Godot smoke test — editor imports the project, scene renders both clubs headless, gated by CI |
 | FND-015 | 🔴 | Asset/render pipeline contract — intentionally removed from Foundation; use an ART spike later |
 | FND-016 | 🟢 | SDK pin relaxed to `10.0.100` / `latestFeature` (see ADR-0001) |
-| FND-017 | 🟢 | Transitive pin of `SQLitePCLRaw.lib.e_sqlite3` 2.1.12 clearing GHSA-2m69-gcr7-jv3q |
+| FND-017 | 🟢 | `SQLitePCLRaw.bundle_e_sqlite3` 3.0.5 clearing GHSA-2m69-gcr7-jv3q |
+| FND-018 | 🟢 | `Pooling=False` on every connection + `PersistenceContractTests` guarding it |
+| FND-019 | 🟢 | `scripts/godot-smoke-test.sh` — headless Godot run promoted from manual check to CI job |
 
 ### Legend applied to Foundation
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
 - **Planned:** MATCH/PLYR sequence below; no code exists for it.
-- **Implemented:** FND-001…FND-012, FND-016, FND-017.
-- **Tested:** boundaries, determinism contract, match isolation, migrations + seed, career save/checkpoint, headless vertical slice.
+- **Implemented:** FND-001…FND-019, except FND-015 (deliberately discarded).
+- **Tested:** boundaries, determinism contract, match isolation, migrations + seed, career save/checkpoint, headless vertical slice, SQLite handle release, Godot presentation path.
 
-**FOUNDATION-00 overall: 🟡** — locally green end to end; stays 🟡 until remote CI is green and the Godot editor smoke test is run on a developer machine. It becomes 🔵 only after MATCH consumes these boundaries without needing to reshape them.
+**FOUNDATION-00 overall: 🟢** — every deliverable is implemented and verified on both 1.0 target platforms, with CI green end to end.
+
+It is deliberately **not** 🔵 yet. Consolidation means MATCH consumed these boundaries without needing to reshape them, and MATCH does not exist. Two contracts are the likeliest to move:
+
+- `SimulationSettings.FixedTimeStepMilliseconds` is provisional until gameplay granularity is known.
+- `ICareerStore.Checkpoint` persists metadata only, because Foundation has no mutable world state to flush. The transactional boundary is in place; the first dirty-aggregate write will prove it.
 
 ## Next canonical sequence
 
