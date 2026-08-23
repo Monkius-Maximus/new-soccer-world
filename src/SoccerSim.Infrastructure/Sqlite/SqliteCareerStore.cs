@@ -69,11 +69,65 @@ public sealed class SqliteCareerStore : ICareerStore
         DateTimeOffset timestamp)
     {
         ArgumentNullException.ThrowIfNull(world);
-        _ = kind; // Foundation records only metadata; entity persistence arrives with mutable career systems.
+        _ = kind; // Every kind commits identically today; the distinction is for the caller's UX.
 
         var updated = save.Metadata with { LastPlayedAt = timestamp };
-        WriteMetadata(save.DatabasePath, updated, insert: false);
+
+        // One connection, one transaction: progress and the metadata that describes it either
+        // both land or neither does. A crash mid-checkpoint leaves the last good save intact.
+        using var connection = Open(save.DatabasePath);
+        using var transaction = connection.BeginTransaction();
+
+        WriteSimulationRuns(connection, transaction, world.SimulationRuns);
+        WriteMetadata(connection, transaction, updated, insert: false);
+
+        transaction.Commit();
+        world.MarkPersisted();
+
         return save with { Metadata = updated };
+    }
+
+    private static void WriteSimulationRuns(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IReadOnlyList<AppliedSimulationRun> runs)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO simulation_run
+                (ordinal, home_club_id, away_club_id, seed, simulation_version, ticks, digest)
+            VALUES
+                ($ordinal, $homeClubId, $awayClubId, $seed, $simulationVersion, $ticks, $digest)
+            ON CONFLICT(ordinal) DO UPDATE SET
+                home_club_id = excluded.home_club_id,
+                away_club_id = excluded.away_club_id,
+                seed = excluded.seed,
+                simulation_version = excluded.simulation_version,
+                ticks = excluded.ticks,
+                digest = excluded.digest;
+            """;
+
+        var ordinal = command.Parameters.Add("$ordinal", SqliteType.Integer);
+        var homeClubId = command.Parameters.Add("$homeClubId", SqliteType.Integer);
+        var awayClubId = command.Parameters.Add("$awayClubId", SqliteType.Integer);
+        var seed = command.Parameters.Add("$seed", SqliteType.Text);
+        var simulationVersion = command.Parameters.Add("$simulationVersion", SqliteType.Integer);
+        var ticks = command.Parameters.Add("$ticks", SqliteType.Integer);
+        var digest = command.Parameters.Add("$digest", SqliteType.Text);
+
+        // Written in career apply order so the file mirrors the in-memory sequence.
+        foreach (var run in runs)
+        {
+            ordinal.Value = run.Ordinal;
+            homeClubId.Value = run.HomeClubId;
+            awayClubId.Value = run.AwayClubId;
+            seed.Value = run.Seed.ToString(CultureInfo.InvariantCulture);
+            simulationVersion.Value = run.SimulationVersion;
+            ticks.Value = run.Ticks;
+            digest.Value = run.Digest.ToString(CultureInfo.InvariantCulture);
+            command.ExecuteNonQuery();
+        }
     }
 
     private static void ValidateSaveId(string saveId)
@@ -122,6 +176,16 @@ public sealed class SqliteCareerStore : ICareerStore
     {
         using var connection = Open(databasePath);
         using var transaction = connection.BeginTransaction();
+        WriteMetadata(connection, transaction, metadata, insert);
+        transaction.Commit();
+    }
+
+    private static void WriteMetadata(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        SaveMetadata metadata,
+        bool insert)
+    {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = insert
@@ -148,7 +212,6 @@ public sealed class SqliteCareerStore : ICareerStore
         command.Parameters.AddWithValue("$lastPlayedAt", metadata.LastPlayedAt.ToString("O", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$careerSeed", metadata.CareerSeed.ToString(CultureInfo.InvariantCulture));
         command.ExecuteNonQuery();
-        transaction.Commit();
     }
 
     private static SqliteConnection Open(string databasePath)

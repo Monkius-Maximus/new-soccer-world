@@ -66,6 +66,39 @@ public sealed class MatchIsolationTests
         Assert.Equal(before, Describe(world));
     }
 
+    [Fact]
+    public void Mutating_a_snapshot_cannot_reach_the_world_it_came_from()
+    {
+        var world = BuildWorld();
+        world.ApplySimulationRun(1, 2, 1UL, SimulationSettings.SimulationVersion, 128, 42UL);
+        world.MarkPersisted();
+
+        var snapshot = world.Snapshot();
+        snapshot.ApplySimulationRun(2, 1, 99UL, SimulationSettings.SimulationVersion, 128, 7UL);
+
+        // The snapshot moved on; the career world did not.
+        Assert.Equal(2, snapshot.SimulationRuns.Count);
+        Assert.Single(world.SimulationRuns);
+        Assert.False(world.HasUnsavedChanges);
+    }
+
+    [Fact]
+    public void Applied_progress_is_the_only_thing_that_marks_a_world_unsaved()
+    {
+        var world = BuildWorld();
+        Assert.False(world.HasUnsavedChanges);
+
+        // Reading the world — which is all a match does — never dirties it.
+        _ = world.GetRoster(1);
+        _ = world.Snapshot();
+        DeterministicSimulationProbe.Run(
+            new MatchContext(1, 2, 5UL, SimulationSettings.SimulationVersion, world.Snapshot()), 128);
+        Assert.False(world.HasUnsavedChanges);
+
+        world.ApplySimulationRun(1, 2, 5UL, SimulationSettings.SimulationVersion, 128, 1UL);
+        Assert.True(world.HasUnsavedChanges);
+    }
+
     private static string Describe(WorldState world) => string.Join(
         "|",
         world.Countries.Select(x => x.ToString())
@@ -73,5 +106,7 @@ public sealed class MatchIsolationTests
             .Concat(world.Stadiums.Select(x => x.ToString()))
             .Concat(world.Clubs.Select(x => x.ToString()))
             .Concat(world.Players.Select(x => x.ToString()))
-            .Concat(world.Competitions.Select(x => x.ToString())));
+            .Concat(world.Competitions.Select(x => x.ToString()))
+            .Concat(world.SimulationRuns.Select(x => x.ToString()))
+            .Append($"dirty={world.HasUnsavedChanges}"));
 }

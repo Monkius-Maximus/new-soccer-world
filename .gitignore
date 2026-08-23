@@ -10,7 +10,8 @@ obj/
 .godot/
 .import/
 export.cfg
-export_presets.cfg
+# export_presets.cfg is deliberately tracked: CI exports the two 1.0 desktop targets from it,
+# so it has to be reproducible. Keep paths relative and never put signing credentials in it.
 
 # Generated databases / saves
 artifacts/

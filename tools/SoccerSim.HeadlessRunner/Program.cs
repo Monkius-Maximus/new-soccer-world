@@ -75,7 +75,35 @@ if (first.Digest == alternate.Digest && first.FinalRandomState == alternate.Fina
     return 13;
 }
 
+// Prove the save contract end to end: apply → checkpoint → reopen → discard.
+var outcome = application.RunMatch(career, homeId, awayId, seed, ticks);
+application.ApplyOutcomes(career, [outcome]);
+if (!career.World.HasUnsavedChanges)
+{
+    Console.Error.WriteLine("Applying an outcome should have left the career dirty.");
+    return 14;
+}
+
 application.Checkpoint(career, SoccerSim.Core.Persistence.CheckpointKind.EndOfMatch, DateTimeOffset.UtcNow);
+var committed = application.OpenCareer(career.Save.DatabasePath);
+if (committed.World.SimulationRuns.Count != 1)
+{
+    Console.Error.WriteLine("Checkpoint did not persist the applied run.");
+    return 15;
+}
+
+// Work after the checkpoint that is deliberately abandoned.
+application.ApplyOutcomes(career, [application.RunMatch(career, homeId, awayId, seed + 7UL, ticks)]);
+var discarded = application.DiscardAndReload(career);
+if (discarded.World.SimulationRuns.Count != 1)
+{
+    Console.Error.WriteLine("Quitting without saving should have discarded post-checkpoint work.");
+    return 16;
+}
+
+Console.WriteLine(
+    $"Save contract: committed={committed.World.SimulationRuns.Count} run(s); " +
+    $"discarded {career.World.SimulationRuns.Count - discarded.World.SimulationRuns.Count} unsaved run(s).");
 Console.WriteLine("Foundation headless vertical slice passed.");
 return 0;
 

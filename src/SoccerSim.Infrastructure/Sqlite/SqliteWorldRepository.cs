@@ -18,7 +18,32 @@ public sealed class SqliteWorldRepository : IWorldRepository
             LoadStadiums(connection),
             LoadClubs(connection),
             LoadPlayers(connection),
-            LoadCompetitions(connection));
+            LoadCompetitions(connection),
+            LoadSimulationRuns(connection));
+    }
+
+    private static IReadOnlyList<AppliedSimulationRun> LoadSimulationRuns(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT ordinal, home_club_id, away_club_id, seed, simulation_version, ticks, digest
+            FROM simulation_run
+            ORDER BY ordinal;
+            """;
+        using var reader = command.ExecuteReader();
+        var rows = new List<AppliedSimulationRun>();
+        while (reader.Read())
+        {
+            rows.Add(new AppliedSimulationRun(
+                reader.GetInt32(0),
+                reader.GetInt32(1),
+                reader.GetInt32(2),
+                ulong.Parse(reader.GetString(3), CultureInfo.InvariantCulture),
+                reader.GetInt32(4),
+                reader.GetInt32(5),
+                ulong.Parse(reader.GetString(6), CultureInfo.InvariantCulture)));
+        }
+        return rows;
     }
 
     private static SqliteConnection Open(string databasePath)

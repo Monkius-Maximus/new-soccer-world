@@ -34,19 +34,35 @@ This file describes implementation status, not just ideas.
 | FND-018 | 🟢 | `Pooling=False` on every connection + `PersistenceContractTests` guarding it |
 | FND-019 | 🟢 | `scripts/godot-smoke-test.sh` — headless Godot run promoted from manual check to CI job |
 
-### Legend applied to Foundation
+## Consolidation (CONS-00)
+
+Hardening the Foundation contracts that existed only on paper. No football gameplay.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| CONS-001 | 🟢 | Migration `0002` — `simulation_run`, the first real career aggregate |
+| CONS-002 | 🟢 | `WorldState` gains a controlled mutation surface + `HasUnsavedChanges` |
+| CONS-003 | 🟢 | `Checkpoint` writes progress **and** metadata in one transaction |
+| CONS-004 | 🟢 | Manual save / autosave / Save & Exit / discard-without-saving as real use cases |
+| CONS-005 | 🟢 | Deterministic apply order independent of match arrival order |
+| CONS-006 | 🟢 | Rollback proven: a failed checkpoint leaves the previous save intact |
+| CONS-007 | 🟢 | Release export for Linux + Windows x86_64, exported binary executed in CI |
+| CONS-008 | 🟢 | `dotnet/project/solution_directory` fix — export produced a launchable build |
+
+### Legend applied
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
-- **Planned:** MATCH/PLYR sequence below; no code exists for it.
-- **Implemented:** FND-001…FND-019, except FND-015 (deliberately discarded).
-- **Tested:** boundaries, determinism contract, match isolation, migrations + seed, career save/checkpoint, headless vertical slice, SQLite handle release, Godot presentation path.
+- **Planned:** PLYR-00 / MATCH-00 below; no code exists for them.
+- **Implemented:** FND-001…FND-019 (except FND-015, discarded) and CONS-001…CONS-008.
+- **Tested:** 48 tests — boundaries, determinism contract, match isolation, migrations + seed, the full save contract including rollback and discard, headless vertical slice, Godot presentation path, and the exported release build.
 
-**FOUNDATION-00 overall: 🟢** — every deliverable is implemented and verified on both 1.0 target platforms, with CI green end to end.
+**FOUNDATION-00: 🔵 module consolidated.** Every contract it declared is now exercised by something that fails when broken, on both 1.0 target platforms, including the packaged artifact.
 
-It is deliberately **not** 🔵 yet. Consolidation means MATCH consumed these boundaries without needing to reshape them, and MATCH does not exist. Two contracts are the likeliest to move:
+Two contracts remain deliberately provisional, and MATCH is expected to move them:
 
-- `SimulationSettings.FixedTimeStepMilliseconds` is provisional until gameplay granularity is known.
-- `ICareerStore.Checkpoint` persists metadata only, because Foundation has no mutable world state to flush. The transactional boundary is in place; the first dirty-aggregate write will prove it.
+- `SimulationSettings.FixedTimeStepMilliseconds` — provisional until gameplay granularity is known. Changing it after release requires a `SimulationVersion` bump.
+- `simulation_run` records applied *simulation* results, not football events. MATCH replaces its payload; the checkpoint boundary around it should not need to change.
+
 
 ## Next canonical sequence
 

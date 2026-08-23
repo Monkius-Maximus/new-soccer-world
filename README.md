@@ -4,15 +4,11 @@ Canonical implementation repository for the offline-first football simulation pr
 
 ## Current status
 
-**🟢 FOUNDATION-00 — complete and verified on both 1.0 target platforms**
+**🔵 FOUNDATION-00 — module consolidated**
 
-CI is green on `ubuntu-latest` and `windows-latest`: the solution builds with 0 warnings and 0 errors, 34 tests pass, the headless slice reproduces identical digests across separate processes for one seed while diverging for another, and Godot 4.7.1 .NET runs the presentation scene headless against a real career database.
+CI is green on `ubuntu-latest` and `windows-latest`: the solution builds with 0 warnings and 0 errors, 48 tests pass, the headless slice reproduces identical digests across separate processes for one seed while diverging for another, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
 
-It stays 🟢 rather than 🔵 until MATCH consumes these boundaries without reshaping them — see [`docs/ROADMAP.md`](docs/ROADMAP.md) for the two contracts most likely to move.
-
-The first milestone intentionally contains no real football gameplay. It proves the technical path that later modules depend on:
-
-`SQL migrations + seeds → world_template.db → career world.db → WorldState in memory → Application → isolated deterministic simulation → Godot presentation`
+Consolidation closed the contracts that previously existed only on paper: career progress is now a real persisted aggregate, and manual save, autosave, Save & Exit, discard-without-saving and checkpoint rollback are each covered by a test that fails when broken.
 
 ### Status semantics
 
@@ -47,6 +43,12 @@ For the Godot smoke test, run it headless the way CI does:
 scripts/godot-smoke-test.sh /path/to/Godot_v4.7.1-stable_mono_linux.x86_64
 ```
 
+To verify what would actually ship — release exports for both desktop targets, plus running the exported Linux build — install the matching export templates and run:
+
+```bash
+scripts/godot-export-test.sh /path/to/Godot_v4.7.1-stable_mono_linux.x86_64
+```
+
 Or open `game/SoccerDreamGame/project.godot` in the .NET edition of Godot 4.7.1. Without `SOCCER_SAVE_DB`, the scene proves that the C# project loads. Set `SOCCER_SAVE_DB` to a generated career `world.db` to render seeded club/roster data.
 
 ## Repository map
@@ -59,7 +61,8 @@ Or open `game/SoccerDreamGame/project.godot` in the .NET edition of Godot 4.7.1.
 - `game/SoccerDreamGame` — Godot .NET presentation smoke test
 - `sql/migrations` — canonical schema evolution
 - `sql/seeds` — canonical foundation seed content
-- `tests/SoccerSim.Architecture.Tests` — layering and determinism-contract tripwires
+- `tests/SoccerSim.Architecture.Tests` — layering, determinism and persistence tripwires
+- `scripts` — headless Godot smoke and release-export checks, both gated by CI
 - `tests` — boundary, persistence and determinism tests
 - `docs` — architecture, roadmap and accepted ADRs
 

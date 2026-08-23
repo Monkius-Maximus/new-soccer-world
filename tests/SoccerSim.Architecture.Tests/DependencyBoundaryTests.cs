@@ -135,6 +135,29 @@ public sealed class DependencyBoundaryTests
     }
 
     [Fact]
+    public void Only_the_application_applies_progress_to_the_world()
+    {
+        // WorldState.ApplySimulationRun is how career progress accumulates. Letting the
+        // presentation layer or a storage adapter call it would put two owners on the apply
+        // order, which is exactly what the determinism contract forbids.
+        string[] mustNotApply = ["game/SoccerDreamGame", "src/SoccerSim.Infrastructure"];
+
+        foreach (var layer in mustNotApply)
+        {
+            foreach (var (path, text) in RepoLayout.SourceFiles(layer))
+            {
+                Assert.False(
+                    text.Contains("ApplySimulationRun", StringComparison.Ordinal),
+                    $"'{path}' must not apply progress; that is an Application use case.");
+            }
+        }
+
+        Assert.Contains(
+            RepoLayout.SourceFiles("src/SoccerSim.Application"),
+            file => file.Text.Contains("ApplySimulationRun", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Presentation_declares_no_database_package()
     {
         foreach (var package in RepoLayout.PackageReferences(RepoLayout.Presentation))
