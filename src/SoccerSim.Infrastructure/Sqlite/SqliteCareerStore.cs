@@ -45,6 +45,14 @@ public sealed class SqliteCareerStore : ICareerStore
         File.Copy(templateDatabasePath, databasePath, overwrite: false);
 
         var schemaVersion = ReadSchemaVersion(databasePath);
+        if (schemaVersion != SchemaVersions.Expected)
+        {
+            File.Delete(databasePath);
+            throw new InvalidDataException(
+                $"World template is at schema version {schemaVersion}, but this build expects " +
+                $"{SchemaVersions.Expected}. Rebuild it with SoccerSim.WorldBuilder.");
+        }
+
         var metadata = new SaveMetadata(
             saveId,
             gameVersion,
@@ -58,7 +66,22 @@ public sealed class SqliteCareerStore : ICareerStore
         return new CareerSave(databasePath, metadata);
     }
 
-    public CareerSave OpenCareer(string databasePath) => new(databasePath, ReadMetadata(databasePath));
+    public CareerSave OpenCareer(string databasePath)
+    {
+        var metadata = ReadMetadata(databasePath);
+
+        // No migrate-on-open path exists yet, so a mismatch is refused rather than guessed at.
+        // Half-reading a career whose schema moved underneath it is how saves get corrupted.
+        if (metadata.SchemaVersion != SchemaVersions.Expected)
+        {
+            throw new InvalidDataException(
+                $"Career '{metadata.SaveId}' was written against schema version {metadata.SchemaVersion}, " +
+                $"but this build reads version {SchemaVersions.Expected}. " +
+                "Upgrade migrations for existing saves do not exist yet.");
+        }
+
+        return new CareerSave(databasePath, metadata);
+    }
 
     public WorldState LoadWorld(string databasePath) => _worldRepository.Load(databasePath);
 

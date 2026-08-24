@@ -10,12 +10,14 @@ namespace SoccerSim.Architecture.Tests;
 /// </summary>
 public sealed class MatchIsolationTests
 {
+    private static readonly PlayerAttributes Ordinary = new(10, 10, 10, 10, 10, 10, 10, 10, 10);
+
     private static WorldState BuildWorld() => new(
         [new Country(1, "BRA", "Brasil")],
         [new City(1, 1, "Recife")],
         [new Stadium(1, 1, "Estadio das Pontes", 18000)],
         [new Club(1, 1, 1, "Recife Azul", "RAZ"), new Club(2, 1, 1, "Recife Vermelho", "RVM")],
-        [new Player(1, 1, 1, "Caio", "Alencar", new DateOnly(2000, 1, 1), 1, "GK")],
+        [new Player(1, 1, 1, "Caio", "Alencar", new DateOnly(2000, 1, 1), 1, PlayerPosition.Goalkeeper, Ordinary)],
         [new Competition(1, 1, "Amistoso da Fundacao", "friendly")]);
 
     [Fact]

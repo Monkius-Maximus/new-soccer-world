@@ -92,13 +92,43 @@ The fixed timestep is centralized at `SimulationSettings.FixedTimeStepMillisecon
 
 `DeterminismGuardTests` turns each clause of this contract into a failing build when violated: banned entropy sources (`Random.Shared`, `new Random(`, wall-clock reads, `Guid.NewGuid()`, `Environment.TickCount`, `Stopwatch.GetTimestamp`, `RandomNumberGenerator`) anywhere on the deterministic path, `Dictionary`/`HashSet` in Core, any mutable static field in the Core assembly (found by reflection, ignoring compiler-generated members), and more than one declaration of the fixed timestep.
 
-## 5. Headless-first simulation
+## 5. Player contract (PLYR-00)
+
+A player carries the minimum a match needs to be simulable, and nothing else.
+
+**Position** is a closed enum, not a free string. `player.position_code` is constrained by the schema to the ten seeded codes, and the loader parses it into `PlayerPosition`, so an unknown code becomes a load failure rather than a player the simulation silently skips. `PitchLine` groups positions into goalkeeper / defence / midfield / attack — the coarse grouping MATCH needs long before formations exist. TACT will layer roles on top of this rather than replace it.
+
+**Attributes** are nine integers on a 1–20 scale, each earning its place by feeding a decision MATCH-00 has to make:
+
+| Attribute | Match decision it feeds |
+|---|---|
+| Pace | who reaches a loose ball first |
+| Stamina | how much of that survives to the 90th minute |
+| Strength | physical duels, holding the ball up |
+| Passing | whether an attempted pass finds its target |
+| Shooting | whether a shot troubles the goal |
+| Tackling | the defending half of a challenge |
+| Dribbling | the attacking half of a take-on |
+| Positioning | off-ball decision quality, both phases |
+| Goalkeeping | shot stopping; outfielders simply rate low |
+
+Deliberately absent: overall rating, form, morale, hidden mentals, growth curves, injuries. A rating in particular is derived presentation, not stored state — storing it would create two sources of truth the moment an attribute changes.
+
+The scale is enforced twice on purpose. `PlayerAttributes` rejects out-of-range values in its constructor, and the schema carries matching `CHECK` constraints, so neither a bad loader nor hand-edited SQL can introduce a player the simulation cannot reason about.
+
+### Schema compatibility
+
+`SchemaVersions.Expected` names the migration version this build reads and writes, and an architecture test asserts it matches the highest file in `sql/migrations`.
+
+There is no migrate-on-open path: a career database is a copy of a template built by one specific build. Opening a save whose `schema_version` differs therefore fails loudly, and creating a career from a stale template does too. That is the honest behaviour until upgrade migrations exist — half-reading a career whose schema moved underneath it is how saves get corrupted. Adding a migration means bumping the constant and regenerating `world_template.db`.
+
+## 6. Headless-first simulation
 
 `DeterministicSimulationProbe` is deliberately not football. It proves replayability and headless execution before real match logic exists. MATCH will replace/extend this with football state while preserving the same isolation and deterministic boundaries.
 
 No `FastMatchSimulation` exists. Performance fidelity alternatives may only be introduced after a defined benchmark demonstrates a real need.
 
-## 6. Godot
+## 7. Godot
 
 Godot is the primary presentation/runtime engine, not the authority for football rules. The Foundation project targets `net10.0` with `Godot.NET.Sdk/4.7.1` and is validated in CI as a normal .NET build.
 
@@ -117,7 +147,7 @@ Two things about this are easy to get wrong and are worth writing down:
 
 `export_presets.cfg` is tracked rather than gitignored, because CI needs the export to be reproducible. Keep its paths relative and never put signing credentials in it.
 
-## 7. Explicitly deferred
+## 8. Explicitly deferred
 
 The following are not Foundation contracts:
 

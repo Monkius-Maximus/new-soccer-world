@@ -4,11 +4,11 @@ Canonical implementation repository for the offline-first football simulation pr
 
 ## Current status
 
-**🔵 FOUNDATION-00 — module consolidated**
+**🔵 FOUNDATION-00 — module consolidated**  ·  **🟢 PLYR-00 — player contract**
 
-CI is green on `ubuntu-latest` and `windows-latest`: the solution builds with 0 warnings and 0 errors, 48 tests pass, the headless slice reproduces identical digests across separate processes for one seed while diverging for another, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
+CI is green on `ubuntu-latest` and `windows-latest`: the solution builds with 0 warnings and 0 errors, 69 tests pass, the headless slice reproduces identical digests across separate processes for one seed while diverging for another, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
 
-Consolidation closed the contracts that previously existed only on paper: career progress is now a real persisted aggregate, and manual save, autosave, Save & Exit, discard-without-saving and checkpoint rollback are each covered by a test that fails when broken.
+PLYR-00 adds the minimum a player needs for a match to be simulable: a closed set of ten positions grouped into pitch lines, and nine attributes on a validated 1–20 scale, each one justified by a decision `MATCH-00` will have to make. No overall rating, form, morale or growth curves — those belong to milestones that exist.
 
 ### Status semantics
 

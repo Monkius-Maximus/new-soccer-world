@@ -49,7 +49,7 @@ public sealed class InfrastructureTests
             var save = store.CreateCareer(template, tempRoot, "career-1", 99UL, "0.0.1", "foundation-1", createdAt);
             Assert.True(File.Exists(save.DatabasePath));
             // Tracks the highest applied migration in sql/migrations.
-            Assert.Equal(2, save.Metadata.SchemaVersion);
+            Assert.Equal(SoccerSim.Core.Persistence.SchemaVersions.Expected, save.Metadata.SchemaVersion);
             Assert.Equal(99UL, save.Metadata.CareerSeed);
 
             var world = store.LoadWorld(save.DatabasePath);

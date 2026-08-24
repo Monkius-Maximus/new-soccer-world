@@ -113,7 +113,9 @@ public sealed class SqliteWorldRepository : IWorldRepository
     {
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number, position_code
+            SELECT id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number,
+                   position_code, pace, stamina, strength, passing, shooting, tackling, dribbling,
+                   positioning, goalkeeping
             FROM player
             ORDER BY id;
             """;
@@ -129,7 +131,17 @@ public sealed class SqliteWorldRepository : IWorldRepository
                 reader.GetString(4),
                 DateOnly.ParseExact(reader.GetString(5), "yyyy-MM-dd", CultureInfo.InvariantCulture),
                 reader.GetInt32(6),
-                reader.GetString(7)));
+                PlayerPositions.Parse(reader.GetString(7)),
+                new PlayerAttributes(
+                    reader.GetInt32(8),
+                    reader.GetInt32(9),
+                    reader.GetInt32(10),
+                    reader.GetInt32(11),
+                    reader.GetInt32(12),
+                    reader.GetInt32(13),
+                    reader.GetInt32(14),
+                    reader.GetInt32(15),
+                    reader.GetInt32(16))));
         }
         return rows;
     }

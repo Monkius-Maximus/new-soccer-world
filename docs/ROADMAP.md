@@ -52,7 +52,7 @@ Hardening the Foundation contracts that existed only on paper. No football gamep
 ### Legend applied
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
-- **Planned:** PLYR-00 / MATCH-00 below; no code exists for them.
+- **Planned:** MATCH-00 onward; no code exists for them.
 - **Implemented:** FND-001…FND-019 (except FND-015, discarded) and CONS-001…CONS-008.
 - **Tested:** 48 tests — boundaries, determinism contract, match isolation, migrations + seed, the full save contract including rollback and discard, headless vertical slice, Godot presentation path, and the exported release build.
 
@@ -64,15 +64,31 @@ Two contracts remain deliberately provisional, and MATCH is expected to move the
 - `simulation_run` records applied *simulation* results, not football events. MATCH replaces its payload; the checkpoint boundary around it should not need to change.
 
 
+## PLYR-00 — player contract
+
+The minimum a player needs for a match to be simulable. No match rules yet.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| PLYR-001 | 🟢 | `PlayerPosition` closed enum + `PitchLine` grouping, total mapping both ways |
+| PLYR-002 | 🟢 | `PlayerAttributes` — nine attributes on a validated 1–20 scale |
+| PLYR-003 | 🟢 | Migration `0003` — attribute columns with `CHECK`, position constrained to the closed set |
+| PLYR-004 | 🟢 | Seed carries hand-authored attributes for all 30 players |
+| PLYR-005 | 🟢 | `SchemaVersions.Expected` + refusal to open a save or template on another version |
+| PLYR-006 | 🟢 | Position and attributes surfaced through Application to the Godot screen |
+
+**PLYR-00: 🟢** — 69 tests. Both squads are provably able to field a goalkeeper and every line, which is the precondition MATCH-00 needs to pick a starting eleven.
+
+Deliberately **not** modelled, to avoid speculative structure: overall rating (derived presentation, not stored state), form, morale, hidden mentals, growth/aging, injuries, preferred foot. Each belongs to a milestone that exists.
+
 ## Next canonical sequence
 
-1. `PLYR-00` — minimal football attributes/positions contract required by match simulation.
-2. `MATCH-00` — football match state and deterministic headless rules.
-3. `MATCH-01` — first visual 11v11 slice in Godot.
-4. `TACT-00` — formation/roles/in-possession/out-of-possession behavior.
-5. `COMP-00` — league/cup/calendar rules.
-6. `CLUB-00` — persistent club/squad systems.
-7. `CAREER-00` — first complete long-term club career loop.
+1. `MATCH-00` — football match state and deterministic headless rules.
+2. `MATCH-01` — first visual 11v11 slice in Godot.
+3. `TACT-00` — formation/roles/in-possession/out-of-possession behavior.
+4. `COMP-00` — league/cup/calendar rules.
+5. `CLUB-00` — persistent club/squad systems.
+6. `CAREER-00` — first complete long-term club career loop.
 
 Before real MATCH performance work, define `PERF-001`: reference hardware, active-world size and maximum acceptable round-advance time. Do not invent FastMatchSimulation before that measurement.
 

@@ -8,4 +8,13 @@ public sealed record Player(
     string LastName,
     DateOnly BirthDate,
     int SquadNumber,
-    string PositionCode);
+    PlayerPosition Position,
+    PlayerAttributes Attributes)
+{
+    public string DisplayName => $"{FirstName} {LastName}";
+
+    /// <summary>The persisted short code for <see cref="Position"/>, e.g. "GK".</summary>
+    public string PositionCode => Position.ToCode();
+
+    public PitchLine Line => Position.Line();
+}

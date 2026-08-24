@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
+using SoccerSim.Core.Persistence;
 
 namespace SoccerSim.Architecture.Tests;
 
@@ -32,6 +34,38 @@ public sealed partial class PersistenceContractTests
         }
 
         Assert.True(found > 0, "Expected to find at least one SQLite connection string to check.");
+    }
+
+    [Fact]
+    public void The_expected_schema_version_matches_the_highest_migration_on_disk()
+    {
+        // Adding a migration without bumping SchemaVersions.Expected produces a template the
+        // build then refuses to open. Catch it here rather than at first run.
+        var migrations = Directory
+            .EnumerateFiles(Path.Combine(RepoLayout.Root, "sql", "migrations"), "*.sql")
+            .Select(Path.GetFileName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.NotEmpty(migrations);
+
+        var highest = migrations
+            .Select(name => int.Parse(name!.Split('_', 2)[0], CultureInfo.InvariantCulture))
+            .Max();
+
+        Assert.Equal(highest, SchemaVersions.Expected);
+    }
+
+    [Fact]
+    public void Migration_versions_are_contiguous_and_unique()
+    {
+        var versions = Directory
+            .EnumerateFiles(Path.Combine(RepoLayout.Root, "sql", "migrations"), "*.sql")
+            .Select(path => int.Parse(Path.GetFileName(path).Split('_', 2)[0], CultureInfo.InvariantCulture))
+            .OrderBy(version => version)
+            .ToArray();
+
+        Assert.Equal(Enumerable.Range(1, versions.Length), versions);
     }
 
     [Fact]

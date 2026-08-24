@@ -15,8 +15,10 @@ public sealed class ClubRosterQueryService
                     .Select(player => new PlayerView(
                         player.Id,
                         player.SquadNumber,
-                        $"{player.FirstName} {player.LastName}",
-                        player.PositionCode))
+                        player.DisplayName,
+                        player.PositionCode,
+                        player.Line,
+                        player.Attributes))
                     .ToArray()))
             .ToArray();
 }

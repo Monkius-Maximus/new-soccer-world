@@ -37,7 +37,10 @@ public partial class Main : Control
                 rosters.Select(club =>
                     $"{club.ClubName} ({club.ShortName})\n" +
                     string.Join("\n", club.Players.Select(player =>
-                        $"#{player.SquadNumber:00}  {player.DisplayName}  [{player.PositionCode}]"))));
+                        $"#{player.SquadNumber:00}  {player.DisplayName,-22} [{player.PositionCode}] " +
+                        $"{player.Line,-10} " +
+                        $"pac {player.Attributes.Pace:00}  pas {player.Attributes.Passing:00}  " +
+                        $"sho {player.Attributes.Shooting:00}  tck {player.Attributes.Tackling:00}"))));
 
             label.Text = rendered;
 
