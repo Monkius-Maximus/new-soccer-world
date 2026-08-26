@@ -1,4 +1,5 @@
 using SoccerSim.Core.Domain;
+using SoccerSim.Core.Match;
 using SoccerSim.Core.Persistence;
 using SoccerSim.Core.Simulation;
 
@@ -87,12 +88,7 @@ public sealed class CareerApplication
     /// Runs a match against an isolated snapshot and returns its outcome. Nothing is applied to
     /// the career here — see <see cref="ApplyOutcomes"/>.
     /// </summary>
-    public MatchOutcome RunMatch(
-        ActiveCareer career,
-        int homeClubId,
-        int awayClubId,
-        ulong seed,
-        int ticks)
+    public MatchOutcome RunMatch(ActiveCareer career, int homeClubId, int awayClubId, ulong seed)
     {
         var context = new MatchContext(
             homeClubId,
@@ -101,7 +97,7 @@ public sealed class CareerApplication
             SimulationSettings.SimulationVersion,
             career.World.Snapshot());
 
-        return new MatchOutcome(homeClubId, awayClubId, DeterministicSimulationProbe.Run(context, ticks));
+        return new MatchOutcome(homeClubId, awayClubId, MatchSimulation.Run(context));
     }
 
     /// <summary>
@@ -129,6 +125,8 @@ public sealed class CareerApplication
             applied.Add(career.World.ApplySimulationRun(
                 outcome.HomeClubId,
                 outcome.AwayClubId,
+                outcome.Result.HomeScore,
+                outcome.Result.AwayScore,
                 outcome.Result.Seed,
                 outcome.Result.SimulationVersion,
                 outcome.Result.Ticks,
@@ -138,21 +136,4 @@ public sealed class CareerApplication
         return applied;
     }
 
-    public SimulationProbeResult RunFoundationSimulationProbe(
-        ActiveCareer career,
-        int homeClubId,
-        int awayClubId,
-        ulong seed,
-        int ticks)
-    {
-        // The match gets an isolated snapshot. It never mutates the active career directly.
-        var context = new MatchContext(
-            homeClubId,
-            awayClubId,
-            seed,
-            SimulationSettings.SimulationVersion,
-            career.World.Snapshot());
-
-        return DeterministicSimulationProbe.Run(context, ticks);
-    }
 }

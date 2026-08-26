@@ -119,12 +119,16 @@ public sealed class SqliteCareerStore : ICareerStore
         command.Transaction = transaction;
         command.CommandText = """
             INSERT INTO simulation_run
-                (ordinal, home_club_id, away_club_id, seed, simulation_version, ticks, digest)
+                (ordinal, home_club_id, away_club_id, home_score, away_score,
+                 seed, simulation_version, ticks, digest)
             VALUES
-                ($ordinal, $homeClubId, $awayClubId, $seed, $simulationVersion, $ticks, $digest)
+                ($ordinal, $homeClubId, $awayClubId, $homeScore, $awayScore,
+                 $seed, $simulationVersion, $ticks, $digest)
             ON CONFLICT(ordinal) DO UPDATE SET
                 home_club_id = excluded.home_club_id,
                 away_club_id = excluded.away_club_id,
+                home_score = excluded.home_score,
+                away_score = excluded.away_score,
                 seed = excluded.seed,
                 simulation_version = excluded.simulation_version,
                 ticks = excluded.ticks,
@@ -134,6 +138,8 @@ public sealed class SqliteCareerStore : ICareerStore
         var ordinal = command.Parameters.Add("$ordinal", SqliteType.Integer);
         var homeClubId = command.Parameters.Add("$homeClubId", SqliteType.Integer);
         var awayClubId = command.Parameters.Add("$awayClubId", SqliteType.Integer);
+        var homeScore = command.Parameters.Add("$homeScore", SqliteType.Integer);
+        var awayScore = command.Parameters.Add("$awayScore", SqliteType.Integer);
         var seed = command.Parameters.Add("$seed", SqliteType.Text);
         var simulationVersion = command.Parameters.Add("$simulationVersion", SqliteType.Integer);
         var ticks = command.Parameters.Add("$ticks", SqliteType.Integer);
@@ -145,6 +151,8 @@ public sealed class SqliteCareerStore : ICareerStore
             ordinal.Value = run.Ordinal;
             homeClubId.Value = run.HomeClubId;
             awayClubId.Value = run.AwayClubId;
+            homeScore.Value = run.HomeScore;
+            awayScore.Value = run.AwayScore;
             seed.Value = run.Seed.ToString(CultureInfo.InvariantCulture);
             simulationVersion.Value = run.SimulationVersion;
             ticks.Value = run.Ticks;

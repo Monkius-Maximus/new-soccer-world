@@ -68,6 +68,8 @@ public sealed class WorldState
     public AppliedSimulationRun ApplySimulationRun(
         int homeClubId,
         int awayClubId,
+        int homeScore,
+        int awayScore,
         ulong seed,
         int simulationVersion,
         int ticks,
@@ -77,6 +79,8 @@ public sealed class WorldState
             _simulationRuns.Count + 1,
             homeClubId,
             awayClubId,
+            homeScore,
+            awayScore,
             seed,
             simulationVersion,
             ticks,

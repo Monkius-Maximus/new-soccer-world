@@ -1,5 +1,6 @@
 using System.Reflection;
 using SoccerSim.Core.Domain;
+using SoccerSim.Core.Match;
 using SoccerSim.Core.Simulation;
 
 namespace SoccerSim.Architecture.Tests;
@@ -12,12 +13,28 @@ public sealed class MatchIsolationTests
 {
     private static readonly PlayerAttributes Ordinary = new(10, 10, 10, 10, 10, 10, 10, 10, 10);
 
+    private static readonly PlayerPosition[] SquadShape =
+    [
+        PlayerPosition.Goalkeeper, PlayerPosition.Goalkeeper,
+        PlayerPosition.RightBack, PlayerPosition.CentreBack, PlayerPosition.CentreBack,
+        PlayerPosition.LeftBack, PlayerPosition.CentreBack,
+        PlayerPosition.DefensiveMidfielder, PlayerPosition.CentralMidfielder,
+        PlayerPosition.CentralMidfielder, PlayerPosition.AttackingMidfielder,
+        PlayerPosition.RightWinger, PlayerPosition.LeftWinger,
+        PlayerPosition.Striker, PlayerPosition.Striker
+    ];
+
+    private static IEnumerable<Player> Squad(int clubId, int idBase) =>
+        SquadShape.Select((position, index) => new Player(
+            idBase + index, 1, clubId, $"P{idBase + index}", "Test",
+            new DateOnly(2000, 1, 1), index + 1, position, Ordinary));
+
     private static WorldState BuildWorld() => new(
         [new Country(1, "BRA", "Brasil")],
         [new City(1, 1, "Recife")],
         [new Stadium(1, 1, "Estadio das Pontes", 18000)],
         [new Club(1, 1, 1, "Recife Azul", "RAZ"), new Club(2, 1, 1, "Recife Vermelho", "RVM")],
-        [new Player(1, 1, 1, "Caio", "Alencar", new DateOnly(2000, 1, 1), 1, PlayerPosition.Goalkeeper, Ordinary)],
+        [.. Squad(1, 100), .. Squad(2, 200)],
         [new Competition(1, 1, "Amistoso da Fundacao", "friendly")]);
 
     [Fact]
@@ -61,7 +78,7 @@ public sealed class MatchIsolationTests
         var before = Describe(world);
 
         var context = new MatchContext(1, 2, 4242UL, SimulationSettings.SimulationVersion, world.Snapshot());
-        var result = DeterministicSimulationProbe.Run(context, 512);
+        var result = MatchSimulation.Run(context);
 
         // The match returns a result; it does not write anything back.
         Assert.Equal(SimulationSettings.SimulationVersion, result.SimulationVersion);
@@ -72,11 +89,11 @@ public sealed class MatchIsolationTests
     public void Mutating_a_snapshot_cannot_reach_the_world_it_came_from()
     {
         var world = BuildWorld();
-        world.ApplySimulationRun(1, 2, 1UL, SimulationSettings.SimulationVersion, 128, 42UL);
+        world.ApplySimulationRun(1, 2, 0, 0, 1UL, SimulationSettings.SimulationVersion, 128, 42UL);
         world.MarkPersisted();
 
         var snapshot = world.Snapshot();
-        snapshot.ApplySimulationRun(2, 1, 99UL, SimulationSettings.SimulationVersion, 128, 7UL);
+        snapshot.ApplySimulationRun(2, 1, 1, 0, 99UL, SimulationSettings.SimulationVersion, 128, 7UL);
 
         // The snapshot moved on; the career world did not.
         Assert.Equal(2, snapshot.SimulationRuns.Count);
@@ -93,11 +110,11 @@ public sealed class MatchIsolationTests
         // Reading the world — which is all a match does — never dirties it.
         _ = world.GetRoster(1);
         _ = world.Snapshot();
-        DeterministicSimulationProbe.Run(
-            new MatchContext(1, 2, 5UL, SimulationSettings.SimulationVersion, world.Snapshot()), 128);
+        MatchSimulation.Run(
+            new MatchContext(1, 2, 5UL, SimulationSettings.SimulationVersion, world.Snapshot()));
         Assert.False(world.HasUnsavedChanges);
 
-        world.ApplySimulationRun(1, 2, 5UL, SimulationSettings.SimulationVersion, 128, 1UL);
+        world.ApplySimulationRun(1, 2, 2, 1, 5UL, SimulationSettings.SimulationVersion, 128, 1UL);
         Assert.True(world.HasUnsavedChanges);
     }
 

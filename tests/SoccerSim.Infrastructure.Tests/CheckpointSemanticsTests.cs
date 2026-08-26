@@ -1,5 +1,6 @@
 using SoccerSim.Application;
 using SoccerSim.Core.Persistence;
+using SoccerSim.Core.Match;
 using SoccerSim.Core.Simulation;
 using SoccerSim.Infrastructure.Sqlite;
 
@@ -40,7 +41,7 @@ public sealed class CheckpointSemanticsTests : IDisposable
     private IReadOnlyList<Core.Domain.AppliedSimulationRun> PlayAndApply(ActiveCareer career, ulong seed)
     {
         var clubs = career.World.Clubs;
-        var outcome = _application.RunMatch(career, clubs[0].Id, clubs[1].Id, seed, Ticks);
+        var outcome = _application.RunMatch(career, clubs[0].Id, clubs[1].Id, seed);
         return _application.ApplyOutcomes(career, [outcome]);
     }
 
@@ -178,9 +179,9 @@ public sealed class CheckpointSemanticsTests : IDisposable
         var clubs = first.World.Clubs;
         MatchOutcome[] outcomes =
         [
-            _application.RunMatch(first, clubs[1].Id, clubs[0].Id, 30UL, Ticks),
-            _application.RunMatch(first, clubs[0].Id, clubs[1].Id, 20UL, Ticks),
-            _application.RunMatch(first, clubs[0].Id, clubs[1].Id, 10UL, Ticks)
+            _application.RunMatch(first, clubs[1].Id, clubs[0].Id, 30UL),
+            _application.RunMatch(first, clubs[0].Id, clubs[1].Id, 20UL),
+            _application.RunMatch(first, clubs[0].Id, clubs[1].Id, 10UL)
         ];
 
         _application.ApplyOutcomes(first, outcomes);
@@ -205,7 +206,7 @@ public sealed class CheckpointSemanticsTests : IDisposable
         Assert.Equal(applied[0].Digest, restored.Digest);
         Assert.Equal(applied[0].Seed, restored.Seed);
         Assert.Equal(SimulationSettings.SimulationVersion, restored.SimulationVersion);
-        Assert.Equal(Ticks, restored.Ticks);
+        Assert.Equal(applied[0].Ticks, restored.Ticks);
     }
 
     [Fact]
@@ -216,7 +217,7 @@ public sealed class CheckpointSemanticsTests : IDisposable
         _application.Save(career, Start.AddMinutes(5));
 
         // Apply a run that violates the schema's club foreign key, so the commit must fail.
-        career.World.ApplySimulationRun(9999, 8888, 77UL, SimulationSettings.SimulationVersion, Ticks, 5UL);
+        career.World.ApplySimulationRun(9999, 8888, 1, 0, 77UL, SimulationSettings.SimulationVersion, Ticks, 5UL);
 
         Assert.ThrowsAny<Exception>(() => _application.Save(career, Start.AddMinutes(6)));
 

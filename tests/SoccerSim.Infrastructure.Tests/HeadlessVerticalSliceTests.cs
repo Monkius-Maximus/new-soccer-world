@@ -1,5 +1,6 @@
 using SoccerSim.Application;
 using SoccerSim.Core.Persistence;
+using SoccerSim.Core.Match;
 using SoccerSim.Core.Simulation;
 using SoccerSim.Infrastructure.Sqlite;
 
@@ -84,7 +85,7 @@ public sealed class HeadlessVerticalSliceTests : IDisposable
         var result = RunProbe(application, "slice-version", seed: 5UL);
 
         Assert.Equal(SimulationSettings.SimulationVersion, result.SimulationVersion);
-        Assert.Equal(Ticks, result.Ticks);
+        Assert.True(result.Ticks > 0);
         Assert.Equal(5UL, result.Seed);
     }
 
@@ -95,7 +96,7 @@ public sealed class HeadlessVerticalSliceTests : IDisposable
         var career = StartCareer(application, "slice-checkpoint");
         var createdAt = career.Save.Metadata.LastPlayedAt;
 
-        application.RunFoundationSimulationProbe(career, career.World.Clubs[0].Id, career.World.Clubs[1].Id, 1UL, Ticks);
+        application.RunMatch(career, career.World.Clubs[0].Id, career.World.Clubs[1].Id, 1UL);
 
         // Simulating did not touch the database; only an explicit checkpoint does.
         var beforeCheckpoint = new SqliteCareerStore().OpenCareer(career.Save.DatabasePath);
@@ -108,11 +109,11 @@ public sealed class HeadlessVerticalSliceTests : IDisposable
         Assert.Equal(checkpointAt, afterCheckpoint.Metadata.LastPlayedAt);
     }
 
-    private SimulationProbeResult RunProbe(CareerApplication application, string saveId, ulong seed)
+    private MatchResult RunProbe(CareerApplication application, string saveId, ulong seed)
     {
         var career = StartCareer(application, saveId);
         var clubs = career.World.Clubs;
-        return application.RunFoundationSimulationProbe(career, clubs[0].Id, clubs[1].Id, seed, Ticks);
+        return application.RunMatch(career, clubs[0].Id, clubs[1].Id, seed).Result;
     }
 
     private static string FindRepoRoot()

@@ -4,11 +4,13 @@ Canonical implementation repository for the offline-first football simulation pr
 
 ## Current status
 
-**🔵 FOUNDATION-00 — module consolidated**  ·  **🟢 PLYR-00 — player contract**
+**🔵 FOUNDATION-00**  ·  **🟢 PLYR-00**  ·  **🟢 MATCH-00 — spatial deterministic match**
 
-CI is green on `ubuntu-latest` and `windows-latest`: the solution builds with 0 warnings and 0 errors, 69 tests pass, the headless slice reproduces identical digests across separate processes for one seed while diverging for another, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
+CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 85 tests, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
 
-PLYR-00 adds the minimum a player needs for a match to be simulable: a closed set of ten positions grouped into pitch lines, and nine attributes on a validated 1–20 scale, each one justified by a decision `MATCH-00` will have to make. No overall rating, form, morale or growth curves — those belong to milestones that exist.
+`MATCH-00` simulates football spatially on a fixed 50 ms timestep: twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. It runs headless in about 60 ms, replays exactly from a seed, and returns an ordered event stream that `MATCH-01` will render rather than re-derive.
+
+Measured over 300 matches between evenly-rated squads: **3.14 goals and 28.3 shots per match**, with neither side structurally favoured. The balance constants are tuned against that observation and recorded next to the numbers that produced them.
 
 ### Status semantics
 

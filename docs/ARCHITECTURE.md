@@ -26,7 +26,7 @@ What the boundary guarantees, and what `CheckpointSemanticsTests` asserts:
 | Quit without saving | Writes nothing. Reopening yields the last committed state, losing exactly the work applied since. |
 | Failed checkpoint | Rolls back whole. The previous save stays intact and readable. |
 
-Reference data — countries, cities, clubs, stadiums, players, competitions — is immutable content shipped in `world_template.db`. Career progress is what accumulates on top of it, and `simulation_run` (migration `0002`) is currently the only such aggregate. It records applied simulation results rather than football events; MATCH will add those. It exists so the checkpoint boundary has a real dirty aggregate to flush, instead of being a contract validated only by metadata timestamps.
+Reference data — countries, cities, clubs, stadiums, players, competitions — is immutable content shipped in `world_template.db`. Career progress is what accumulates on top of it, and `simulation_run` (migrations `0002` and `0004`) is currently the only such aggregate: one row per applied match, carrying the scoreline and the digest that proves which simulation produced it. Competition tables, standings and fixtures belong to `COMP-00`.
 
 ### Deterministic apply order
 
@@ -88,7 +88,9 @@ The Foundation promises exact reproduction only for:
 
 Cross-platform bit-exact determinism is explicitly not promised. The deterministic path must not depend on process-global randomness, wall-clock time, GUID generation, incidental unordered collection traversal or shared mutable state.
 
-The fixed timestep is centralized at `SimulationSettings.FixedTimeStepMilliseconds`. Its Foundation value is provisional until MATCH validates gameplay granularity. Once released simulation behavior depends on it, changing it requires a `SimulationVersion` bump.
+The fixed timestep is centralized at `SimulationSettings.FixedTimeStepMilliseconds`. Foundation carried a provisional 100 ms; MATCH-00 revised it to **50 ms**, which is what that provision was for. At 100 ms a sprinting player covers most of a metre per tick and pressing resolves in visible jumps, which would also make MATCH-01's visual slice stutter. Ball tunnelling is handled by segment tests rather than by tick rate, so this was a motion-quality decision, not a correctness one.
+
+`SimulationVersion` is now **2**. It is bumped whenever results for a given seed would change — tick length, tuning constants, or the rules themselves — and every stored result records the version that produced it, so a replay against a different version is detectable rather than silently wrong.
 
 `DeterminismGuardTests` turns each clause of this contract into a failing build when violated: banned entropy sources (`Random.Shared`, `new Random(`, wall-clock reads, `Guid.NewGuid()`, `Environment.TickCount`, `Stopwatch.GetTimestamp`, `RandomNumberGenerator`) anywhere on the deterministic path, `Dictionary`/`HashSet` in Core, any mutable static field in the Core assembly (found by reflection, ignoring compiler-generated members), and more than one declaration of the fixed timestep.
 
@@ -122,11 +124,30 @@ The scale is enforced twice on purpose. `PlayerAttributes` rejects out-of-range 
 
 There is no migrate-on-open path: a career database is a copy of a template built by one specific build. Opening a save whose `schema_version` differs therefore fails loudly, and creating a career from a stale template does too. That is the honest behaviour until upgrade migrations exist — half-reading a career whose schema moved underneath it is how saves get corrupted. Adding a migration means bumping the constant and regenerating `world_template.db`.
 
-## 6. Headless-first simulation
+## 6. The match (MATCH-00)
 
-`DeterministicSimulationProbe` is deliberately not football. It proves replayability and headless execution before real match logic exists. MATCH will replace/extend this with football state while preserving the same isolation and deterministic boundaries.
+A match is spatial and advances on the centralized fixed timestep. Twenty-two players and a ball hold positions in metres on a 105 x 68 pitch; possession, passing, shooting and tackling are resolved from distances and attributes rather than from an abstract possession counter. That choice was made so `MATCH-01` can render the same simulation instead of inventing a second one.
 
-No `FastMatchSimulation` exists. Performance fidelity alternatives may only be introduced after a defined benchmark demonstrates a real need.
+`MatchSimulation` receives a world snapshot and owns everything it mutates — two teams, a ball, its own `IRandomSource`. It never writes to the world it came from, and returns a `MatchResult` carrying the score, the ordered event stream and a digest. `CareerApplication` applies that result later, in the deterministic order described in section 1.
+
+### Arithmetic discipline
+
+The simulation restricts itself to `+`, `-`, `*`, `/` and `sqrt`. IEEE-754 requires those to be correctly rounded, so they produce identical results on any conforming machine. `Sin`, `Cos`, `Atan2`, `Pow`, `Exp` and `Log` carry no such requirement and can differ between platforms and runtime versions.
+
+Nothing in football needs them: direction comes from normalising a difference vector, proximity from comparing squared distances. `DeterminismGuardTests` fails the build if one appears on the deterministic path. This does not upgrade the cross-platform promise — that stays out of scope — but it removes the largest single obstacle to it, and it makes a future fixed-point migration a much smaller change.
+
+### Two failure modes worth naming
+
+Both were found by measuring output over hundreds of matches, not by reading the code.
+
+- **Ball tunnelling.** A shot travels over a metre per tick. Sampling the ball's position each tick lets fast shots pass straight through the goal line, and the harder the shot the likelier it is to be missed. Goal detection therefore tests the *segment* the ball travelled, not its endpoint.
+- **Array-order bias.** Players who reach the ball stop exactly on it, so two chasers routinely end a tick at an identical distance. Awarding that ball to whichever player the loop met first handed every fifty-fifty to the same side, worth roughly a goal a game — a 1.5x scoring advantage between two identical squads. Genuine ties are now contested with a weighted roll, and a test asserts neither side is structurally favoured across sixty matches.
+
+### Balance
+
+`MatchTuning` holds every constant the balance depends on, with the measured output recorded beside it: 3.14 goals and 28.3 shots per match across 300 matches between evenly-rated squads. Real top-flight football sits near 2.7 goals and 25 shots. The numbers are tuned against observation, not asserted, and they are not claimed to be final.
+
+No `FastMatchSimulation` exists. A faster path may only be introduced after `PERF-001` defines reference hardware and an acceptable round-advance time; a match currently takes about 60 ms.
 
 ## 7. Godot
 

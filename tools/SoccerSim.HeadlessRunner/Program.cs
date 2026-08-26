@@ -39,14 +39,14 @@ if (rosters.Count < 2)
     return 11;
 }
 
-const int ticks = 4096;
 var homeId = rosters[0].ClubId;
 var awayId = rosters[1].ClubId;
-var first = application.RunFoundationSimulationProbe(career, homeId, awayId, seed, ticks);
-var replay = application.RunFoundationSimulationProbe(career, homeId, awayId, seed, ticks);
-var alternate = application.RunFoundationSimulationProbe(career, homeId, awayId, seed + 1UL, ticks);
 
-// Reproduction record: everything a future run needs to reproduce these digests exactly.
+var first = application.RunMatch(career, homeId, awayId, seed).Result;
+var replay = application.RunMatch(career, homeId, awayId, seed).Result;
+var alternate = application.RunMatch(career, homeId, awayId, seed + 1UL).Result;
+
+// Reproduction record: everything a future run needs to reproduce these results exactly.
 // The guarantee is same build + same platform/architecture + same initial state + same
 // inputs + same seed. It is deliberately not a cross-platform guarantee.
 Console.WriteLine("--- reproduction record ---");
@@ -60,24 +60,32 @@ Console.WriteLine($"CareerSeed          = {career.Save.Metadata.CareerSeed}");
 Console.WriteLine($"Runtime             = {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
 Console.WriteLine($"Platform            = {System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier}");
 Console.WriteLine("---------------------------");
-Console.WriteLine($"Seed {seed}: digest={first.Digest:X16}, finalRng={first.FinalRandomState:X16}");
-Console.WriteLine($"Replay {seed}: digest={replay.Digest:X16}, finalRng={replay.FinalRandomState:X16}");
-Console.WriteLine($"Seed {seed + 1UL}: digest={alternate.Digest:X16}, finalRng={alternate.FinalRandomState:X16}");
 
-if (first != replay)
+var homeName = rosters[0].ClubName;
+var awayName = rosters[1].ClubName;
+Console.WriteLine($"Seed {seed}:   {homeName} {first.HomeScore}-{first.AwayScore} {awayName}   digest={first.Digest:X16}");
+Console.WriteLine($"Replay {seed}: {homeName} {replay.HomeScore}-{replay.AwayScore} {awayName}   digest={replay.Digest:X16}");
+Console.WriteLine($"Seed {seed + 1UL}: {homeName} {alternate.HomeScore}-{alternate.AwayScore} {awayName}   digest={alternate.Digest:X16}");
+
+Console.WriteLine("Goals:");
+foreach (var goal in first.Goals)
+{
+    Console.WriteLine($"  {goal.Minute:D2}'  club {goal.ClubId}  player {goal.PlayerId}");
+}
+
+if (first.Digest != replay.Digest || first.FinalRandomState != replay.FinalRandomState)
 {
     Console.Error.WriteLine("Determinism failure: identical input did not reproduce exactly.");
     return 12;
 }
-if (first.Digest == alternate.Digest && first.FinalRandomState == alternate.FinalRandomState)
+if (first.Digest == alternate.Digest)
 {
-    Console.Error.WriteLine("Random-source sanity failure: adjacent seeds produced an identical probe state.");
+    Console.Error.WriteLine("Random-source sanity failure: adjacent seeds produced an identical match.");
     return 13;
 }
 
-// Prove the save contract end to end: apply → checkpoint → reopen → discard.
-var outcome = application.RunMatch(career, homeId, awayId, seed, ticks);
-application.ApplyOutcomes(career, [outcome]);
+// Prove the save contract end to end: apply -> checkpoint -> reopen -> discard.
+application.ApplyOutcomes(career, [application.RunMatch(career, homeId, awayId, seed)]);
 if (!career.World.HasUnsavedChanges)
 {
     Console.Error.WriteLine("Applying an outcome should have left the career dirty.");
@@ -92,8 +100,7 @@ if (committed.World.SimulationRuns.Count != 1)
     return 15;
 }
 
-// Work after the checkpoint that is deliberately abandoned.
-application.ApplyOutcomes(career, [application.RunMatch(career, homeId, awayId, seed + 7UL, ticks)]);
+application.ApplyOutcomes(career, [application.RunMatch(career, homeId, awayId, seed + 7UL)]);
 var discarded = application.DiscardAndReload(career);
 if (discarded.World.SimulationRuns.Count != 1)
 {
@@ -101,10 +108,11 @@ if (discarded.World.SimulationRuns.Count != 1)
     return 16;
 }
 
+var stored = committed.World.SimulationRuns[0];
 Console.WriteLine(
-    $"Save contract: committed={committed.World.SimulationRuns.Count} run(s); " +
+    $"Save contract: committed {stored.HomeScore}-{stored.AwayScore}; " +
     $"discarded {career.World.SimulationRuns.Count - discarded.World.SimulationRuns.Count} unsaved run(s).");
-Console.WriteLine("Foundation headless vertical slice passed.");
+Console.WriteLine("Headless vertical slice passed.");
 return 0;
 
 static Dictionary<string, string> ParseArgs(string[] values)

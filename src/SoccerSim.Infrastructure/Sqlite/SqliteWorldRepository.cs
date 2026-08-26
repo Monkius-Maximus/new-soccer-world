@@ -26,7 +26,8 @@ public sealed class SqliteWorldRepository : IWorldRepository
     {
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT ordinal, home_club_id, away_club_id, seed, simulation_version, ticks, digest
+            SELECT ordinal, home_club_id, away_club_id, home_score, away_score,
+                   seed, simulation_version, ticks, digest
             FROM simulation_run
             ORDER BY ordinal;
             """;
@@ -38,10 +39,12 @@ public sealed class SqliteWorldRepository : IWorldRepository
                 reader.GetInt32(0),
                 reader.GetInt32(1),
                 reader.GetInt32(2),
-                ulong.Parse(reader.GetString(3), CultureInfo.InvariantCulture),
+                reader.GetInt32(3),
                 reader.GetInt32(4),
-                reader.GetInt32(5),
-                ulong.Parse(reader.GetString(6), CultureInfo.InvariantCulture)));
+                ulong.Parse(reader.GetString(5), CultureInfo.InvariantCulture),
+                reader.GetInt32(6),
+                reader.GetInt32(7),
+                ulong.Parse(reader.GetString(8), CultureInfo.InvariantCulture)));
         }
         return rows;
     }
