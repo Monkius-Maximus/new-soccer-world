@@ -134,7 +134,16 @@ A match is spatial and advances on the centralized fixed timestep. Twenty-two pl
 
 The simulation restricts itself to `+`, `-`, `*`, `/` and `sqrt`. IEEE-754 requires those to be correctly rounded, so they produce identical results on any conforming machine. `Sin`, `Cos`, `Atan2`, `Pow`, `Exp` and `Log` carry no such requirement and can differ between platforms and runtime versions.
 
-Nothing in football needs them: direction comes from normalising a difference vector, proximity from comparing squared distances. `DeterminismGuardTests` fails the build if one appears on the deterministic path. This does not upgrade the cross-platform promise — that stays out of scope — but it removes the largest single obstacle to it, and it makes a future fixed-point migration a much smaller change.
+Nothing in football needs them: direction comes from normalising a difference vector, proximity from comparing squared distances. `DeterminismGuardTests` fails the build if one appears on the deterministic path.
+
+**Observed, not promised.** CI run #8 produced byte-identical digests for the same seeds on `ubuntu-latest` (.NET 10.0.10) and `windows-latest` (.NET 10.0.11):
+
+```
+seed 123456789 -> DEF624ECB336F0E4   on both
+seed 123456790 -> 2107336527299BBE   on both
+```
+
+That is what the arithmetic discipline was for, and it is encouraging. It is **not** a promise: two platforms, two seeds and one build is an observation, not a proof, and nothing in the code guarantees it holds for every CPU, every JIT and every future runtime. The contract in section 4 stays as written — same build, same platform. Anyone wanting a real cross-platform guarantee should treat this as a reason to invest in fixed-point arithmetic and a conformance suite, not as evidence the work is already done.
 
 ### Two failure modes worth naming
 
