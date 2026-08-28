@@ -58,4 +58,42 @@ if ! grep -q "\[SOCCER-SMOKE\] clubs=2 players=30" <<<"$OUTPUT"; then
     exit 1
 fi
 
+# MATCH-01: the visual view steps the simulation itself rather than replaying a recording, so
+# the digest it produces must equal the one the console runner produced for the same seed. If
+# these ever diverge, the screen is showing football that never happened.
+MATCH_SEED=123456790
+
+cd "$REPO_ROOT"
+echo "==> Console match, seed $MATCH_SEED"
+CONSOLE=$(dotnet run --project tools/SoccerSim.HeadlessRunner --configuration Release \
+    -- --template artifacts/world_template.db --seed $MATCH_SEED)
+CONSOLE_DIGEST=$(grep -oP "^Seed $MATCH_SEED:.*digest=\K[0-9A-F]+" <<<"$CONSOLE" | head -1)
+
+if [ -z "$CONSOLE_DIGEST" ]; then
+    echo "$CONSOLE" >&2
+    echo "FAIL: could not read a digest from the console runner." >&2
+    exit 1
+fi
+echo "    console digest = $CONSOLE_DIGEST"
+
+cd "$REPO_ROOT/game/SoccerDreamGame"
+echo "==> Visual match, same seed"
+MATCH_OUTPUT=$(SOCCER_SAVE_DB="$SAVE_DB" SOCCER_SMOKE_EXIT=1 SOCCER_MATCH_SPEED=8000 \
+    SOCCER_MATCH_SEED=$MATCH_SEED "$GODOT" --headless res://Match.tscn 2>&1)
+echo "$MATCH_OUTPUT"
+
+VIEW_DIGEST=$(grep -oP "\[SOCCER-MATCH\] fulltime .*digest=\K[0-9A-F]+" <<<"$MATCH_OUTPUT" | head -1)
+
+if [ -z "$VIEW_DIGEST" ]; then
+    echo "FAIL: the match view did not reach full time." >&2
+    exit 1
+fi
+
+if [ "$VIEW_DIGEST" != "$CONSOLE_DIGEST" ]; then
+    echo "FAIL: the rendered match diverged from the console match." >&2
+    echo "      console=$CONSOLE_DIGEST  view=$VIEW_DIGEST" >&2
+    exit 1
+fi
+
+echo "==> Rendered and console matches agree: $VIEW_DIGEST"
 echo "==> Godot smoke test passed."

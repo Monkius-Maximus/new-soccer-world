@@ -61,34 +61,101 @@ public sealed class MatchSimulation
         _contenders = new int[_everyone.Length];
     }
 
+    /// <summary>
+    /// Runs a whole match and returns its result. This is a loop over <see cref="Step"/>, not a
+    /// second implementation, so a stepped match and a batch match cannot drift apart.
+    /// </summary>
     public static MatchResult Run(MatchContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        return new MatchSimulation(context).Execute();
-    }
-
-    private MatchResult Execute()
-    {
-        KickOff(_home);
-
-        for (_tick = 0; _tick < _totalTicks; _tick++)
+        var simulation = Start(context);
+        while (simulation.Step())
         {
-            if (_tick == _totalTicks / 2)
-            {
-                Record(MatchEventKind.HalfTime, 0, 0);
-                _home.SwapEnds();
-                _away.SwapEnds();
-                KickOff(_away);
-            }
-
-            AdvanceBall();
-            MovePlayers();
-            MixIntoDigest();
         }
 
+        return simulation.Result!;
+    }
+
+    /// <summary>
+    /// Starts a match and takes the kick-off, leaving it ready to be advanced one tick at a
+    /// time. Presentation drives the clock; the simulation still owns every rule and its own
+    /// randomness, so stepping changes who calls the loop, not what the loop does.
+    /// </summary>
+    public static MatchSimulation Start(MatchContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var simulation = new MatchSimulation(context);
+        simulation.KickOff(simulation._home);
+        return simulation;
+    }
+
+    /// <summary>The finished result, or null while the match is still running.</summary>
+    public MatchResult? Result { get; private set; }
+
+    public bool IsFinished => Result is not null;
+
+    /// <summary>
+    /// Advances exactly one fixed timestep.
+    /// </summary>
+    /// <returns>False once the match is over, at which point <see cref="Result"/> is set.</returns>
+    public bool Step()
+    {
+        if (IsFinished)
+        {
+            return false;
+        }
+
+        if (_tick >= _totalTicks)
+        {
+            Finish();
+            return false;
+        }
+
+        if (_tick == _totalTicks / 2)
+        {
+            Record(MatchEventKind.HalfTime, 0, 0);
+            _home.SwapEnds();
+            _away.SwapEnds();
+            KickOff(_away);
+        }
+
+        AdvanceBall();
+        MovePlayers();
+        MixIntoDigest();
+        _tick++;
+        return true;
+    }
+
+    /// <summary>The current tick's visible state, copied so a renderer cannot write back.</summary>
+    public MatchSnapshot Snapshot()
+    {
+        var players = new MatchPlayerSnapshot[_everyone.Length];
+        for (var i = 0; i < _everyone.Length; i++)
+        {
+            var player = _everyone[i];
+            players[i] = new MatchPlayerSnapshot(
+                player.PlayerId, player.ClubId, player.Slot, player.IsGoalkeeper,
+                player.Location, player.Stamina);
+        }
+
+        return new MatchSnapshot(
+            _tick,
+            Minute,
+            _home.ClubId,
+            _away.ClubId,
+            _home.Score,
+            _away.Score,
+            _ballLocation,
+            _carrier?.PlayerId ?? 0,
+            players,
+            IsFinished);
+    }
+
+    private void Finish()
+    {
         Record(MatchEventKind.FullTime, 0, 0);
 
-        return new MatchResult(
+        Result = new MatchResult(
             _home.ClubId,
             _away.ClubId,
             _home.Score,

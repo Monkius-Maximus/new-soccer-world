@@ -53,7 +53,7 @@ public sealed partial class PersistenceContractTests
             .Select(name => int.Parse(name!.Split('_', 2)[0], CultureInfo.InvariantCulture))
             .Max();
 
-        Assert.Equal(highest, SchemaVersions.Expected);
+        Assert.Equal(SchemaVersions.Expected, highest);
     }
 
     [Fact]

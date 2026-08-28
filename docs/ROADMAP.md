@@ -52,7 +52,7 @@ Hardening the Foundation contracts that existed only on paper. No football gamep
 ### Legend applied
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
-- **Planned:** MATCH-01 onward; no code exists for them.
+- **Planned:** TACT-00 onward; no code exists for them.
 - **Implemented:** FND-001…FND-019 (except FND-015, discarded) and CONS-001…CONS-008.
 - **Tested:** 48 tests — boundaries, determinism contract, match isolation, migrations + seed, the full save contract including rollback and discard, headless vertical slice, Godot presentation path, and the exported release build.
 
@@ -110,13 +110,31 @@ Two bugs found by measuring rather than reading, both documented in `ARCHITECTUR
 
 The foundation contracts held: match isolation, the checkpoint boundary and the deterministic apply order all absorbed real football without being reshaped. The only Foundation contract that moved is the one that was explicitly marked provisional — the timestep.
 
+## MATCH-01 — visual 11v11 slice
+
+The reason MATCH-00 was built spatially: the scene renders that simulation rather than a second one.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| MATCH-101 | 🟢 | Stepwise simulation API (`Start` / `Step` / `Snapshot`); `Run` is now a loop over it |
+| MATCH-102 | 🟢 | Test proving a stepped match digests identically to a batch match |
+| MATCH-103 | 🟢 | `CareerApplication.StartMatch` — presentation gets a match from a use case |
+| MATCH-104 | 🟢 | `Match.tscn` / `MatchView` — pitch, 22 players, ball, clock and score, drawn per tick |
+| MATCH-105 | 🟢 | Frame-rate independence: wall-clock time is spent in whole ticks, never passed to the sim |
+| MATCH-106 | 🟢 | Formation-shape test (defence behind midfield behind attack, per attacking direction) |
+| MATCH-107 | 🟢 | CI gate: console and rendered matches must produce the same digest for the same seed |
+| MATCH-108 | 🟢 | Optional PNG capture, so a headless run can produce visual evidence |
+
+**MATCH-01: 🟢** — 93 tests. Verified: the rendered match and the console match agree on digest `2107336527299BBE` for seed 123456790, and a captured frame shows both 4-4-2 shapes, the goalkeepers and the ball.
+
+Deliberately not here: kits, sprites, animation, camera work, replays and UI chrome. `ART-SPIKE-001` owns rendering fidelity; this slice is about the simulation being watchable and provably the same one.
+
 ## Next canonical sequence
 
-1. `MATCH-01` — first visual 11v11 slice in Godot.
-2. `TACT-00` — formation/roles/in-possession/out-of-possession behavior.
-3. `COMP-00` — league/cup/calendar rules.
-4. `CLUB-00` — persistent club/squad systems.
-5. `CAREER-00` — first complete long-term club career loop.
+1. `TACT-00` — formation/roles/in-possession/out-of-possession behavior.
+2. `COMP-00` — league/cup/calendar rules.
+3. `CLUB-00` — persistent club/squad systems.
+4. `CAREER-00` — first complete long-term club career loop.
 
 Before real MATCH performance work, define `PERF-001`: reference hardware, active-world size and maximum acceptable round-advance time. Do not invent FastMatchSimulation before that measurement.
 

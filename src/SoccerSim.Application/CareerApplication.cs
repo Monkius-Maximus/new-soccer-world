@@ -101,6 +101,33 @@ public sealed class CareerApplication
     }
 
     /// <summary>
+    /// Starts a match and hands back the running simulation so a caller can advance it one
+    /// fixed timestep at a time.
+    /// <para>
+    /// This is what the visual match view uses: it draws each tick rather than replaying a
+    /// recorded one, so there is only ever one set of football rules. The returned simulation
+    /// still owns its own state and randomness, and applying its result goes through
+    /// <see cref="ApplyOutcomes"/> exactly as a batch match does.
+    /// </para>
+    /// </summary>
+    public MatchSimulation StartMatch(ActiveCareer career, int homeClubId, int awayClubId, ulong seed) =>
+        MatchSimulation.Start(new MatchContext(
+            homeClubId,
+            awayClubId,
+            seed,
+            SimulationSettings.SimulationVersion,
+            career.World.Snapshot()));
+
+    /// <summary>Wraps a finished simulation as an outcome ready for <see cref="ApplyOutcomes"/>.</summary>
+    public static MatchOutcome OutcomeOf(MatchSimulation simulation)
+    {
+        var result = simulation.Result
+            ?? throw new InvalidOperationException("The match has not finished yet.");
+
+        return new MatchOutcome(result.HomeClubId, result.AwayClubId, result);
+    }
+
+    /// <summary>
     /// Applies finished outcomes to the career world in a deterministic order.
     /// <para>
     /// Matches may be produced in any order — and, once matches run in parallel, in a

@@ -4,13 +4,13 @@ Canonical implementation repository for the offline-first football simulation pr
 
 ## Current status
 
-**🔵 FOUNDATION-00**  ·  **🟢 PLYR-00**  ·  **🟢 MATCH-00 — spatial deterministic match**
+**🔵 FOUNDATION-00**  ·  **🟢 PLYR-00**  ·  **🟢 MATCH-00**  ·  **🟢 MATCH-01 — visual 11v11 slice**
 
-CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 85 tests, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
+CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 93 tests, and Godot 4.7.1 .NET runs both scenes headless and exports release builds for the two 1.0 desktop targets, with the exported Linux binary executed against a real career database.
 
-`MATCH-00` simulates football spatially on a fixed 50 ms timestep: twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. It runs headless in about 60 ms, replays exactly from a seed, and returns an ordered event stream that `MATCH-01` will render rather than re-derive.
+`MATCH-00` simulates football spatially on a fixed 50 ms timestep — twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. Measured over 300 matches between evenly-rated squads: **3.14 goals and 28.3 shots per match**, neither side structurally favoured.
 
-Measured over 300 matches between evenly-rated squads: **3.14 goals and 28.3 shots per match**, with neither side structurally favoured. The balance constants are tuned against that observation and recorded next to the numbers that produced them.
+`MATCH-01` draws that simulation. The scene steps `MatchSimulation` on its own fixed timestep and renders the current tick, so the screen shows the match rather than a recording of one. CI plays the same seed through the console runner and through the rendered scene and fails if the two digests differ.
 
 ### Status semantics
 
@@ -44,6 +44,8 @@ For the Godot smoke test, run it headless the way CI does:
 ```bash
 scripts/godot-smoke-test.sh /path/to/Godot_v4.7.1-stable_mono_linux.x86_64
 ```
+
+To watch a match, open the project and run `Match.tscn`. `SOCCER_MATCH_SPEED` sets the time multiplier (default 30x, so a full match takes about three minutes) and `SOCCER_MATCH_SEED` picks the match.
 
 To verify what would actually ship — release exports for both desktop targets, plus running the exported Linux build — install the matching export templates and run:
 
