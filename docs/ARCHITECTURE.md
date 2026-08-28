@@ -169,6 +169,8 @@ Positions are deliberately **not** stored in `MatchResult`: a match is 108,000 t
 
 Stepping must not change the football, so a test asserts a stepped match produces a digest identical to the batch run. The Godot view accumulates wall-clock time and spends it in whole ticks, so frame rate decides how many ticks run per frame and never reaches the simulation. `scripts/godot-smoke-test.sh` closes the loop end to end: it plays the same seed through the console runner and through the rendered scene and fails if the two digests differ, which is what would happen if the screen ever started showing football that did not occur.
 
+The digest alone is not enough, though — it proves the simulation matched, not that the view reported it correctly. A frame can cover thousands of ticks at high speed, so reading a goal's time off the frame that noticed it put goals minutes away from where they happened, and made two bit-identical matches look like they had diverged. The view drains `MatchSimulation.Events` and reports each one at its own recorded minute, and the script compares goal times as well as digests.
+
 ## 7. Godot
 
 Godot is the primary presentation/runtime engine, not the authority for football rules. The Foundation project targets `net10.0` with `Godot.NET.Sdk/4.7.1` and is validated in CI as a normal .NET build.

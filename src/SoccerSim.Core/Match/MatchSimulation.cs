@@ -89,6 +89,12 @@ public sealed class MatchSimulation
         return simulation;
     }
 
+    /// <summary>
+    /// Events recorded so far, in order. Readable while the match runs so a renderer can report
+    /// a goal at the minute it actually happened rather than the minute it noticed.
+    /// </summary>
+    public IReadOnlyList<MatchEvent> Events => _events;
+
     /// <summary>The finished result, or null while the match is still running.</summary>
     public MatchResult? Result { get; private set; }
 

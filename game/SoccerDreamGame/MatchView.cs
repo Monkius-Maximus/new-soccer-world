@@ -28,7 +28,7 @@ public partial class MatchView : Node2D
     private Label _hud = null!;
     private double _accumulator;
     private double _speed = 30.0;
-    private int _lastReportedGoals = -1;
+    private int _reportedEvents;
     private string _screenshotPath = string.Empty;
     private int _screenshotAtTick = -1;
     private bool _screenshotTaken;
@@ -112,11 +112,18 @@ public partial class MatchView : Node2D
         QueueRedraw();
 
         var snapshot = _match.Snapshot();
-        var goals = snapshot.HomeScore + snapshot.AwayScore;
-        if (goals != _lastReportedGoals)
+
+        // Drain new events and report them at their own recorded minute. A frame can cover many
+        // ticks, so reading the time off the frame would put goals minutes away from where they
+        // happened — and make two identical matches look like they diverged.
+        var events = _match.Events;
+        for (; _reportedEvents < events.Count; _reportedEvents++)
         {
-            _lastReportedGoals = goals;
-            GD.Print($"{MatchMarker} {snapshot.Minute:D2}' {snapshot.HomeScore}-{snapshot.AwayScore}");
+            var recorded = events[_reportedEvents];
+            if (recorded.Kind == MatchEventKind.Goal)
+            {
+                GD.Print($"{MatchMarker} goal {recorded.Minute:D2}' club={recorded.ClubId} player={recorded.PlayerId}");
+            }
         }
 
         if (!_screenshotTaken && _screenshotAtTick >= 0 && snapshot.Tick >= _screenshotAtTick)

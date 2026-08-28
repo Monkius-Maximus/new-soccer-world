@@ -95,5 +95,18 @@ if [ "$VIEW_DIGEST" != "$CONSOLE_DIGEST" ]; then
     exit 1
 fi
 
+# The digest proves the simulation matched. It says nothing about whether the view reported it
+# correctly, so compare the goal times too: an earlier version read them off the frame that
+# noticed the goal rather than off the event, which moved them by minutes at high speed.
+CONSOLE_GOALS=$(grep -oP "^\s+\K\d+(?=')" <<<"$CONSOLE" | sort -n | tr '\n' ' ')
+VIEW_GOALS=$(grep -oP "\[SOCCER-MATCH\] goal \K\d+(?=')" <<<"$MATCH_OUTPUT" | sort -n | tr '\n' ' ')
+
+if [ "$CONSOLE_GOALS" != "$VIEW_GOALS" ]; then
+    echo "FAIL: goal times differ between the console and the view." >&2
+    echo "      console=[$CONSOLE_GOALS] view=[$VIEW_GOALS]" >&2
+    exit 1
+fi
+
+echo "==> Goal times agree: [${VIEW_GOALS:-none}]"
 echo "==> Rendered and console matches agree: $VIEW_DIGEST"
 echo "==> Godot smoke test passed."
