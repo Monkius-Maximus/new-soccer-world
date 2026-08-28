@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>SoccerSim.Architecture.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!--
+    Deliberately references only Core. The boundary rules are asserted against the project
+    files and the source tree on disk, not against a compiled reference graph, so this
+    project must not be able to "see" Application, Infrastructure or Godot.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/SoccerSim.Core/SoccerSim.Core.csproj" />
+  </ItemGroup>
+</Project>

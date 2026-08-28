@@ -15,3 +15,10 @@ window/size/window_height_override=540
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[dotnet]
+
+; The solution lives at the monorepo root, not next to the .csproj. Without this the .NET
+; export fails with "no solution file was found".
+project/assembly_name="SoccerDreamGame"
+project/solution_directory="../.."

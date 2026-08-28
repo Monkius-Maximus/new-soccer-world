@@ -48,7 +48,8 @@ public sealed class InfrastructureTests
             var createdAt = new DateTimeOffset(2026, 8, 8, 0, 0, 0, TimeSpan.Zero);
             var save = store.CreateCareer(template, tempRoot, "career-1", 99UL, "0.0.1", "foundation-1", createdAt);
             Assert.True(File.Exists(save.DatabasePath));
-            Assert.Equal(1, save.Metadata.SchemaVersion);
+            // Tracks the highest applied migration in sql/migrations.
+            Assert.Equal(SoccerSim.Core.Persistence.SchemaVersions.Expected, save.Metadata.SchemaVersion);
             Assert.Equal(99UL, save.Metadata.CareerSeed);
 
             var world = store.LoadWorld(save.DatabasePath);

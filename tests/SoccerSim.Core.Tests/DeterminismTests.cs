@@ -1,30 +1,56 @@
 using SoccerSim.Core.Domain;
+using SoccerSim.Core.Match;
 using SoccerSim.Core.Simulation;
 
 namespace SoccerSim.Core.Tests;
 
 public sealed class DeterminismTests
 {
-    private static readonly WorldState EmptyWorld = new([], [], [], [], [], []);
+    private static MatchResult Play(ulong seed, WorldState? world = null) => MatchSimulation.Run(
+        new MatchContext(
+            TestWorld.HomeClubId,
+            TestWorld.AwayClubId,
+            seed,
+            SimulationSettings.SimulationVersion,
+            (world ?? TestWorld.Build()).Snapshot()));
 
     [Fact]
     public void Same_seed_and_inputs_reproduce_exactly()
     {
-        var context = new MatchContext(1, 2, 123456UL, SimulationSettings.SimulationVersion, EmptyWorld);
-        var first = DeterministicSimulationProbe.Run(context, 4096);
-        var replay = DeterministicSimulationProbe.Run(context, 4096);
-        Assert.Equal(first, replay);
+        var first = Play(123456UL);
+        var replay = Play(123456UL);
+
+        // Digest folds in every player position on every tick, so equality here is total.
+        Assert.Equal(first.Digest, replay.Digest);
+        Assert.Equal(first.FinalRandomState, replay.FinalRandomState);
+        Assert.Equal(first.HomeScore, replay.HomeScore);
+        Assert.Equal(first.AwayScore, replay.AwayScore);
+        Assert.Equal(first.Events, replay.Events);
     }
 
     [Fact]
-    public void Different_seed_changes_probe_state()
+    public void Different_seed_changes_the_match()
     {
-        var first = DeterministicSimulationProbe.Run(
-            new MatchContext(1, 2, 123456UL, SimulationSettings.SimulationVersion, EmptyWorld), 4096);
-        var second = DeterministicSimulationProbe.Run(
-            new MatchContext(1, 2, 123457UL, SimulationSettings.SimulationVersion, EmptyWorld), 4096);
+        var first = Play(123456UL);
+        var second = Play(123457UL);
+
         Assert.NotEqual(first.Digest, second.Digest);
         Assert.NotEqual(first.FinalRandomState, second.FinalRandomState);
+    }
+
+    [Fact]
+    public void Two_matches_can_run_interleaved_without_touching_each_other()
+    {
+        // Proves the isolation the contract promises: no shared mutable state between matches.
+        var alone = Play(999UL);
+
+        var world = TestWorld.Build();
+        var a = MatchSimulation.Run(new MatchContext(
+            TestWorld.HomeClubId, TestWorld.AwayClubId, 999UL, SimulationSettings.SimulationVersion, world.Snapshot()));
+        _ = MatchSimulation.Run(new MatchContext(
+            TestWorld.HomeClubId, TestWorld.AwayClubId, 555UL, SimulationSettings.SimulationVersion, world.Snapshot()));
+
+        Assert.Equal(alone.Digest, a.Digest);
     }
 
     [Fact]

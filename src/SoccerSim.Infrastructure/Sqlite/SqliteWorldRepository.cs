@@ -18,7 +18,35 @@ public sealed class SqliteWorldRepository : IWorldRepository
             LoadStadiums(connection),
             LoadClubs(connection),
             LoadPlayers(connection),
-            LoadCompetitions(connection));
+            LoadCompetitions(connection),
+            LoadSimulationRuns(connection));
+    }
+
+    private static IReadOnlyList<AppliedSimulationRun> LoadSimulationRuns(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT ordinal, home_club_id, away_club_id, home_score, away_score,
+                   seed, simulation_version, ticks, digest
+            FROM simulation_run
+            ORDER BY ordinal;
+            """;
+        using var reader = command.ExecuteReader();
+        var rows = new List<AppliedSimulationRun>();
+        while (reader.Read())
+        {
+            rows.Add(new AppliedSimulationRun(
+                reader.GetInt32(0),
+                reader.GetInt32(1),
+                reader.GetInt32(2),
+                reader.GetInt32(3),
+                reader.GetInt32(4),
+                ulong.Parse(reader.GetString(5), CultureInfo.InvariantCulture),
+                reader.GetInt32(6),
+                reader.GetInt32(7),
+                ulong.Parse(reader.GetString(8), CultureInfo.InvariantCulture)));
+        }
+        return rows;
     }
 
     private static SqliteConnection Open(string databasePath)
@@ -88,7 +116,9 @@ public sealed class SqliteWorldRepository : IWorldRepository
     {
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number, position_code
+            SELECT id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number,
+                   position_code, pace, stamina, strength, passing, shooting, tackling, dribbling,
+                   positioning, goalkeeping
             FROM player
             ORDER BY id;
             """;
@@ -104,7 +134,17 @@ public sealed class SqliteWorldRepository : IWorldRepository
                 reader.GetString(4),
                 DateOnly.ParseExact(reader.GetString(5), "yyyy-MM-dd", CultureInfo.InvariantCulture),
                 reader.GetInt32(6),
-                reader.GetString(7)));
+                PlayerPositions.Parse(reader.GetString(7)),
+                new PlayerAttributes(
+                    reader.GetInt32(8),
+                    reader.GetInt32(9),
+                    reader.GetInt32(10),
+                    reader.GetInt32(11),
+                    reader.GetInt32(12),
+                    reader.GetInt32(13),
+                    reader.GetInt32(14),
+                    reader.GetInt32(15),
+                    reader.GetInt32(16))));
         }
         return rows;
     }

@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/SoccerSim.Infrastructure/SoccerSim.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/SoccerSim.Application/SoccerSim.Application.csproj" />
     <ProjectReference Include="../../src/SoccerSim.Core/SoccerSim.Core.csproj" />
   </ItemGroup>
 </Project>

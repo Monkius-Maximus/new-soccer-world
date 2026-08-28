@@ -5,6 +5,8 @@ namespace SoccerSim.Application.Tests;
 
 public sealed class ApplicationTests
 {
+    private static readonly PlayerAttributes Ordinary = new(10, 10, 10, 10, 10, 10, 10, 10, 10);
+
     [Fact]
     public void Roster_query_is_stably_ordered()
     {
@@ -14,8 +16,8 @@ public sealed class ApplicationTests
             [new Stadium(1, 1, "Teste", 1000)],
             [new Club(2, 1, 1, "B", "BBB"), new Club(1, 1, 1, "A", "AAA")],
             [
-                new Player(2, 1, 1, "B", "Dois", new DateOnly(2000, 1, 1), 10, "ST"),
-                new Player(1, 1, 1, "A", "Um", new DateOnly(2000, 1, 1), 1, "GK")
+                new Player(2, 1, 1, "B", "Dois", new DateOnly(2000, 1, 1), 10, PlayerPosition.Striker, Ordinary),
+                new Player(1, 1, 1, "A", "Um", new DateOnly(2000, 1, 1), 1, PlayerPosition.Goalkeeper, Ordinary)
             ],
             []);
 
