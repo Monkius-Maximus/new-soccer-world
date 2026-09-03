@@ -14,7 +14,8 @@ public sealed record MatchResult(
     int Ticks,
     ulong Digest,
     ulong FinalRandomState,
-    IReadOnlyList<MatchEvent> Events)
+    IReadOnlyList<MatchEvent> Events,
+    IReadOnlyList<MatchFrame> Frames)
 {
     public IEnumerable<MatchEvent> Goals => Events.Where(e => e.Kind == MatchEventKind.Goal);
 
@@ -37,10 +38,36 @@ public sealed record MatchResult(
         Ticks == other.Ticks &&
         Digest == other.Digest &&
         FinalRandomState == other.FinalRandomState &&
-        Events.SequenceEqual(other.Events);
+        Events.SequenceEqual(other.Events) &&
+        FramesEqual(Frames, other.Frames);
 
     public override int GetHashCode() =>
-        HashCode.Combine(HomeClubId, AwayClubId, HomeScore, AwayScore, Seed, Digest, FinalRandomState, Events.Count);
+        HashCode.Combine(HomeClubId, AwayClubId, HomeScore, AwayScore, Seed, Digest, Events.Count, Frames.Count);
+
+    private static bool FramesEqual(IReadOnlyList<MatchFrame> left, IReadOnlyList<MatchFrame> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            var a = left[i];
+            var b = right[i];
+            if (a.Tick != b.Tick ||
+                a.HomeScore != b.HomeScore ||
+                a.AwayScore != b.AwayScore ||
+                a.BallLocation != b.BallLocation ||
+                a.CarrierPlayerId != b.CarrierPlayerId ||
+                !a.Players.SequenceEqual(b.Players))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public override string ToString() => $"{HomeScore}-{AwayScore} (seed {Seed}, digest {Digest:X16})";
 }
