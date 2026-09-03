@@ -25,9 +25,11 @@ public sealed class MatchSimulation
     private readonly Vec2[] _targets;
     private readonly int[] _contenders;
     private readonly List<MatchEvent> _events = [];
+    private readonly List<MatchFrame>? _frames;
     private readonly double _secondsPerTick;
     private readonly int _totalTicks;
     private readonly int _decisionInterval;
+    private readonly int _frameInterval;
 
     private Vec2 _ballLocation;
     private Vec2 _ballVelocity;
@@ -39,7 +41,7 @@ public sealed class MatchSimulation
     private int _tick;
     private ulong _digest = FnvOffsetBasis;
 
-    private MatchSimulation(MatchContext context)
+    private MatchSimulation(MatchContext context, MatchCaptureMode captureMode)
     {
         _context = context;
 
@@ -49,6 +51,8 @@ public sealed class MatchSimulation
         _secondsPerTick = SimulationSettings.FixedTimeStepMilliseconds / 1000.0;
         _totalTicks = (int)(MatchTuning.MatchMinutes * 60.0 / _secondsPerTick);
         _decisionInterval = Math.Max(1, (int)(MatchTuning.DecisionIntervalSeconds / _secondsPerTick));
+        _frameInterval = Math.Max(1, (int)(1.0 / _secondsPerTick));
+        _frames = captureMode == MatchCaptureMode.Playback ? [] : null;
 
         var world = context.WorldSnapshot;
         _home = new MatchTeam(
@@ -61,10 +65,12 @@ public sealed class MatchSimulation
         _contenders = new int[_everyone.Length];
     }
 
-    public static MatchResult Run(MatchContext context)
+    public static MatchResult Run(
+        MatchContext context,
+        MatchCaptureMode captureMode = MatchCaptureMode.None)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return new MatchSimulation(context).Execute();
+        return new MatchSimulation(context, captureMode).Execute();
     }
 
     private MatchResult Execute()
@@ -83,6 +89,12 @@ public sealed class MatchSimulation
 
             AdvanceBall();
             MovePlayers();
+
+            if (_frames is not null && _tick % _frameInterval == 0)
+            {
+                CaptureFrame();
+            }
+
             MixIntoDigest();
         }
 
@@ -98,7 +110,8 @@ public sealed class MatchSimulation
             _totalTicks,
             _digest,
             _random.State,
-            _events);
+            _events,
+            _frames ?? []);
     }
 
     private int Minute => (int)(_tick * _secondsPerTick / 60.0);
@@ -107,8 +120,50 @@ public sealed class MatchSimulation
 
     private MatchTeam TeamOf(MatchPlayer player) => player.ClubId == _home.ClubId ? _home : _away;
 
-    private void Record(MatchEventKind kind, int clubId, int playerId) =>
+    private void Record(MatchEventKind kind, int clubId, int playerId)
+    {
         _events.Add(new MatchEvent(_tick, Minute, kind, clubId, playerId));
+        CaptureFrame();
+    }
+
+    private void CaptureFrame()
+    {
+        if (_frames is null)
+        {
+            return;
+        }
+
+        var players = new MatchPlayerSample[_everyone.Length];
+        for (var i = 0; i < _everyone.Length; i++)
+        {
+            var player = _everyone[i];
+            players[i] = new MatchPlayerSample(
+                player.PlayerId,
+                player.ClubId,
+                player.Slot,
+                player.Location,
+                player.Stamina);
+        }
+
+        var frame = new MatchFrame(
+            _tick,
+            _home.Score,
+            _away.Score,
+            _ballLocation,
+            _carrier?.PlayerId,
+            players);
+
+        // Several semantic events may share one tick (for example Goal then KickOff). Playback
+        // needs the final authoritative state for that tick and the event stream keeps both cues.
+        if (_frames.Count > 0 && _frames[^1].Tick == _tick)
+        {
+            _frames[^1] = frame;
+        }
+        else
+        {
+            _frames.Add(frame);
+        }
+    }
 
     /// <summary>A roll of "n in 1000", clamped so a rating can never make something certain.</summary>
     private bool Chance(int perThousand) =>
