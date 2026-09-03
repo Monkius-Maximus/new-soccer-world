@@ -110,9 +110,26 @@ Two bugs found by measuring rather than reading, both documented in `ARCHITECTUR
 
 The foundation contracts held: match isolation, the checkpoint boundary and the deterministic apply order all absorbed real football without being reshaped. The only Foundation contract that moved is the one that was explicitly marked provisional — the timestep.
 
+## MATCH-01 — authoritative visual match slice
+
+The first Godot 11v11 presentation consumes MATCH-00 rather than re-simulating it.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| MATCH-01A | 🟡 | Sampled immutable spatial frames + deterministic regression tests |
+| MATCH-01B | 🟠 | Application playback package with presentation metadata |
+| MATCH-01C | 🟠 | Primitive 3D pitch, 22 actors, ball, controlled camera and HUD |
+| MATCH-01D | 🟠 | Interpolation, event cues, pause and playback speed |
+| MATCH-01E | 🟠 | Headless/export gates and runtime/memory measurements |
+
+**Direction accepted:** stylised 3D presentation over the existing 2D metre-space simulation,
+with native 2D UI. See ADR-0006 and `docs/MATCH-01.md`.
+
+No item is green until code, automated checks and measured evidence exist.
+
 ## Next canonical sequence
 
-1. `MATCH-01` — first visual 11v11 slice in Godot.
+1. `MATCH-01` — first visual 11v11 slice in Godot (🟡 contract accepted; implementation next).
 2. `TACT-00` — formation/roles/in-possession/out-of-possession behavior.
 3. `COMP-00` — league/cup/calendar rules.
 4. `CLUB-00` — persistent club/squad systems.
