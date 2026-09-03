@@ -177,7 +177,28 @@ Two things about this are easy to get wrong and are worth writing down:
 
 `export_presets.cfg` is tracked rather than gitignored, because CI needs the export to be reproducible. Keep its paths relative and never put signing credentials in it.
 
-## 8. Explicitly deferred
+## 8. Presentation geometry
+
+ADR-0006 resolves the earlier 2D-versus-3D ambiguity.
+
+The authoritative football state remains the 2D `Vec2` metre-space model described above.
+Godot presents it with stylised low/mid-poly 3D geometry and controlled broadcast/isometric
+cameras. The adapter maps simulation `(X, Y)` to Godot `(X, Z)`; Godot's `Y` axis is
+presentation height and cannot feed match rules.
+
+Menus, HUD, maps and contextual panels remain 2D UI. The life world uses bounded 3D locations
+loaded on demand rather than a seamless global open world.
+
+MATCH-00's event stream alone cannot reproduce continuous movement. MATCH-01 therefore adds
+sampled immutable spatial frames to the result. Godot may interpolate between those frames, but
+it may not run independent football AI or revise possession and outcomes. The detailed boundary,
+sampling policy and acceptance criteria live in `docs/MATCH-01.md`.
+
+Final model topology, rigs, materials, LOD thresholds and kit composition remain evidence sought
+by `ART-SPIKE-001`; accepting 3D presentation does not pretend those production questions are
+already answered.
+
+## 9. Explicitly deferred
 
 The following are not Foundation contracts:
 
