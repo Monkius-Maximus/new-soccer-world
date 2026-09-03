@@ -15,7 +15,7 @@ mkdir -p "$ARTIFACTS"
 dotnet run --project "$REPO_ROOT/tools/SoccerSim.WorldBuilder" --configuration Release -- --output "$TEMPLATE_DB"
 dotnet run --project "$REPO_ROOT/tools/SoccerSim.HeadlessRunner" --configuration Release -- --template "$TEMPLATE_DB" --saves "$SAVES_ROOT" --seed 123456789 >/dev/null
 
-SAVE_DB="$REPO_ROOT/$(find "$SAVES_ROOT" -name world.db | head -1)"
+SAVE_DB="$(find "$SAVES_ROOT" -name world.db | head -1)"
 if [ ! -f "$SAVE_DB" ]; then
     echo "No career world.db was produced." >&2
     exit 3
