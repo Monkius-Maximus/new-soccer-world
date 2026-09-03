@@ -97,6 +97,43 @@ public sealed class MatchRulesTests
     }
 
     [Fact]
+    public void Playback_frames_are_ordered_complete_and_inside_the_pitch()
+    {
+        var world = TestWorld.Build();
+        var result = MatchSimulation.Run(
+            new MatchContext(
+                TestWorld.HomeClubId,
+                TestWorld.AwayClubId,
+                8080UL,
+                SimulationSettings.SimulationVersion,
+                world.Snapshot()),
+            MatchCaptureMode.Playback);
+
+        Assert.Equal(0, result.Frames[0].Tick);
+        Assert.Equal(result.Ticks, result.Frames[^1].Tick);
+
+        for (var i = 1; i < result.Frames.Count; i++)
+        {
+            Assert.True(result.Frames[i].Tick > result.Frames[i - 1].Tick);
+        }
+
+        var frameTicks = result.Frames.Select(frame => frame.Tick).ToHashSet();
+        Assert.All(result.Events, matchEvent => Assert.Contains(matchEvent.Tick, frameTicks));
+
+        Assert.All(result.Frames, frame =>
+        {
+            Assert.True(Pitch.IsInsidePlay(frame.BallLocation));
+            Assert.Equal(22, frame.Players.Count);
+            Assert.Equal(22, frame.Players.Select(player => player.PlayerId).Distinct().Count());
+            Assert.All(frame.Players, player =>
+            {
+                Assert.True(Pitch.IsInsidePlay(player.Location));
+                Assert.InRange(player.Stamina, 0.0, 1.0);
+            });
+        });
+    }
+
+    [Fact]
     public void Across_many_seeds_neither_side_is_structurally_favoured()
     {
         // Both squads are identical here, so any persistent gap is a bug in the simulation,

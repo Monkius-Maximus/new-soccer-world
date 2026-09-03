@@ -29,6 +29,31 @@ public sealed class DeterminismTests
     }
 
     [Fact]
+    public void Playback_capture_is_deterministic_and_does_not_change_the_match()
+    {
+        var world = TestWorld.Build();
+        var context = new MatchContext(
+            TestWorld.HomeClubId,
+            TestWorld.AwayClubId,
+            123456UL,
+            SimulationSettings.SimulationVersion,
+            world.Snapshot());
+
+        var withoutFrames = MatchSimulation.Run(context);
+        var first = MatchSimulation.Run(context, MatchCaptureMode.Playback);
+        var replay = MatchSimulation.Run(context, MatchCaptureMode.Playback);
+
+        Assert.Empty(withoutFrames.Frames);
+        Assert.NotEmpty(first.Frames);
+        Assert.Equal(first, replay);
+        Assert.Equal(withoutFrames.Digest, first.Digest);
+        Assert.Equal(withoutFrames.FinalRandomState, first.FinalRandomState);
+        Assert.Equal(withoutFrames.HomeScore, first.HomeScore);
+        Assert.Equal(withoutFrames.AwayScore, first.AwayScore);
+        Assert.Equal(withoutFrames.Events, first.Events);
+    }
+
+    [Fact]
     public void Different_seed_changes_the_match()
     {
         var first = Play(123456UL);

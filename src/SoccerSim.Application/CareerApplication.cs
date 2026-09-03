@@ -88,7 +88,26 @@ public sealed class CareerApplication
     /// Runs a match against an isolated snapshot and returns its outcome. Nothing is applied to
     /// the career here — see <see cref="ApplyOutcomes"/>.
     /// </summary>
-    public MatchOutcome RunMatch(ActiveCareer career, int homeClubId, int awayClubId, ulong seed)
+    public MatchOutcome RunMatch(ActiveCareer career, int homeClubId, int awayClubId, ulong seed) =>
+        RunMatch(career, homeClubId, awayClubId, seed, MatchCaptureMode.None);
+
+    /// <summary>
+    /// Runs the same authoritative match while retaining sampled spatial frames for a renderer.
+    /// Frame capture consumes no randomness and applying the outcome remains a separate action.
+    /// </summary>
+    public MatchOutcome RunMatchForPlayback(
+        ActiveCareer career,
+        int homeClubId,
+        int awayClubId,
+        ulong seed) =>
+        RunMatch(career, homeClubId, awayClubId, seed, MatchCaptureMode.Playback);
+
+    private static MatchOutcome RunMatch(
+        ActiveCareer career,
+        int homeClubId,
+        int awayClubId,
+        ulong seed,
+        MatchCaptureMode captureMode)
     {
         var context = new MatchContext(
             homeClubId,
@@ -97,7 +116,10 @@ public sealed class CareerApplication
             SimulationSettings.SimulationVersion,
             career.World.Snapshot());
 
-        return new MatchOutcome(homeClubId, awayClubId, MatchSimulation.Run(context));
+        return new MatchOutcome(
+            homeClubId,
+            awayClubId,
+            MatchSimulation.Run(context, captureMode));
     }
 
     /// <summary>
