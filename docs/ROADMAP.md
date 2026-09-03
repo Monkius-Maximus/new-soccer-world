@@ -116,8 +116,8 @@ The first Godot 11v11 presentation consumes MATCH-00 rather than re-simulating i
 
 | ID | Status | Deliverable |
 |---|---|---|
-| MATCH-01A | 🟡 | Sampled immutable spatial frames + deterministic regression tests |
-| MATCH-01B | 🟠 | Application playback package with presentation metadata |
+| MATCH-01A | 🟢 | Sampled immutable spatial frames + deterministic regression tests |
+| MATCH-01B | 🟢 | Application playback package with presentation metadata |
 | MATCH-01C | 🟠 | Primitive 3D pitch, 22 actors, ball, controlled camera and HUD |
 | MATCH-01D | 🟠 | Interpolation, event cues, pause and playback speed |
 | MATCH-01E | 🟠 | Headless/export gates and runtime/memory measurements |
@@ -125,7 +125,8 @@ The first Godot 11v11 presentation consumes MATCH-00 rather than re-simulating i
 **Direction accepted:** stylised 3D presentation over the existing 2D metre-space simulation,
 with native 2D UI. See ADR-0006 and `docs/MATCH-01.md`.
 
-No item is green until code, automated checks and measured evidence exist.
+MATCH-01A/B are green after CI run #26 passed Foundation on Ubuntu and Windows, the Godot
+headless smoke test and both 1.0 release exports. MATCH-01C onward remain unimplemented.
 
 ## Next canonical sequence
 
