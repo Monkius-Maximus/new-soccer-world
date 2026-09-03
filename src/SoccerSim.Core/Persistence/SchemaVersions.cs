@@ -12,5 +12,5 @@ public static class SchemaVersions
     /// exist. Adding a migration means bumping this and regenerating the template.
     /// </para>
     /// </summary>
-    public const int Expected = 4;
+    public const int Expected = 5;
 }

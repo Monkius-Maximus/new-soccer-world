@@ -116,22 +116,54 @@ public sealed class SqliteWorldRepository : IWorldRepository
     {
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number,
-                   position_code, pace, stamina, strength, passing, shooting, tackling, dribbling,
-                   positioning, goalkeeping
-            FROM player
-            ORDER BY id;
+            SELECT p.id, p.nationality_country_id, p.club_id, p.first_name, p.last_name,
+                   p.birth_date, p.squad_number, p.position_code, p.pace, p.stamina, p.strength,
+                   p.passing, p.shooting, p.tackling, p.dribbling, p.positioning, p.goalkeeping,
+                   pn.given_name, pn.additional_given_name, pn.family_name,
+                   pn.additional_family_name, pn.full_name, pn.common_name, pn.shirt_name,
+                   pn.scoreboard_name, pn.culture_id, pn.pack_version, pn.algorithm_version
+            FROM player AS p
+            LEFT JOIN player_name AS pn ON pn.player_id = p.id
+            ORDER BY p.id;
             """;
         using var reader = command.ExecuteReader();
         var rows = new List<Player>();
         while (reader.Read())
         {
+            var playerId = reader.GetInt32(0);
+            if (reader.IsDBNull(17))
+            {
+                throw new InvalidDataException(
+                    $"Player {playerId} has no persisted player_name row; names are never regenerated on load.");
+            }
+
+            var firstName = reader.GetString(3);
+            var lastName = reader.GetString(4);
+            var name = new PlayerName(
+                reader.GetString(17),
+                reader.IsDBNull(18) ? null : reader.GetString(18),
+                reader.GetString(19),
+                reader.IsDBNull(20) ? null : reader.GetString(20),
+                reader.GetString(21),
+                reader.GetString(22),
+                reader.GetString(23),
+                reader.GetString(24),
+                reader.GetString(25),
+                reader.GetString(26),
+                reader.GetString(27));
+            if (!string.Equals(firstName, name.GivenName, StringComparison.Ordinal)
+                || !string.Equals(lastName, name.FamilyName, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    $"Player {playerId} has divergent legacy and canonical name components.");
+            }
+
             rows.Add(new Player(
-                reader.GetInt32(0),
+                playerId,
                 reader.GetInt32(1),
                 reader.GetInt32(2),
-                reader.GetString(3),
-                reader.GetString(4),
+                firstName,
+                lastName,
                 DateOnly.ParseExact(reader.GetString(5), "yyyy-MM-dd", CultureInfo.InvariantCulture),
                 reader.GetInt32(6),
                 PlayerPositions.Parse(reader.GetString(7)),
@@ -144,7 +176,8 @@ public sealed class SqliteWorldRepository : IWorldRepository
                     reader.GetInt32(13),
                     reader.GetInt32(14),
                     reader.GetInt32(15),
-                    reader.GetInt32(16))));
+                    reader.GetInt32(16)),
+                name));
         }
         return rows;
     }
