@@ -5,15 +5,23 @@ GODOT="${1:?Usage: godot-match-smoke-test.sh /path/to/godot}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARTIFACTS="$REPO_ROOT/artifacts/match-smoke"
 TEMPLATE_DB="$ARTIFACTS/world_template.db"
-SAVES_ROOT="$ARTIFACTS/saves"
-SAVE_DB="$SAVES_ROOT/match-smoke/world.db"
+SAVES_ROOT="$REPO_ROOT/saves"
+SAVE_DB=""
 PROJECT="$REPO_ROOT/game/SoccerDreamGame"
 
-rm -rf "$ARTIFACTS"
+rm -rf "$ARTIFACTS" "$SAVES_ROOT"
 mkdir -p "$ARTIFACTS"
 
 dotnet run --project "$REPO_ROOT/tools/SoccerSim.WorldBuilder" --configuration Release -- --output "$TEMPLATE_DB"
-dotnet run --project "$REPO_ROOT/tools/SoccerSim.HeadlessRunner" --configuration Release -- --template "$TEMPLATE_DB" --saves "$SAVES_ROOT" --save-id match-smoke --seed 123456789 >/dev/null
+dotnet run --project "$REPO_ROOT/tools/SoccerSim.HeadlessRunner" --configuration Release -- --template "$TEMPLATE_DB" --seed 123456789 >/dev/null
+
+SAVE_DB="$REPO_ROOT/$(find "$SAVES_ROOT" -name world.db | head -1)"
+if [ ! -f "$SAVE_DB" ]; then
+    echo "No career world.db was produced." >&2
+    exit 3
+fi
+
+dotnet build "$PROJECT/SoccerDreamGame.csproj" --configuration Debug
 
 cd "$PROJECT"
 "$GODOT" --headless --import >/dev/null
