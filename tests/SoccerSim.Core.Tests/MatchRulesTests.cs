@@ -116,7 +116,7 @@ public sealed class MatchRulesTests
         Assert.True(total > 0, "Sixty matches produced no goals at all.");
 
         var gap = Math.Abs(homeGoals - awayGoals) / (double)total;
-        Assert.True(gap < 0.25, $"Home {homeGoals} vs away {awayGoals} is a structural imbalance.");
+        Assert.True(gap < 0.15, $"Home {homeGoals} vs away {awayGoals} is a structural imbalance.");
     }
 
     [Fact]
@@ -164,5 +164,28 @@ public sealed class MatchRulesTests
 
         Assert.True(shots >= goals, "There cannot be more goals than shots.");
         Assert.True(shots >= saves, "There cannot be more saves than shots.");
+    }
+
+    [Fact]
+    public void Every_shot_ends_in_an_outcome_the_event_stream_names()
+    {
+        // A shot is saved, blocked, off target or a goal. Anything else means the stream lost a
+        // shot somewhere, which is how blocked shots went unrecorded for a while: they were
+        // neither saved nor off target nor goals, and simply vanished from the account.
+        for (ulong seed = 1; seed <= 12; seed++)
+        {
+            var result = Play(seed);
+
+            int Count(MatchEventKind kind) => result.Events.Count(e => e.Kind == kind);
+
+            var shots = Count(MatchEventKind.Shot);
+            var accounted = Count(MatchEventKind.Save)
+                            + Count(MatchEventKind.ShotBlocked)
+                            + Count(MatchEventKind.ShotOffTarget)
+                            + Count(MatchEventKind.Goal);
+
+            // A shot still travelling at full time has no outcome yet, so allow exactly one.
+            Assert.InRange(shots - accounted, 0, 1);
+        }
     }
 }

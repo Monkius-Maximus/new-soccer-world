@@ -129,7 +129,7 @@ public partial class MatchView : Node2D
         if (!_screenshotTaken && _screenshotAtTick >= 0 && snapshot.Tick >= _screenshotAtTick)
         {
             _screenshotTaken = true;
-            CallDeferred(nameof(CaptureFrame));
+            _ = CaptureFrameAsync();
         }
 
         if (_match.IsFinished)
@@ -203,11 +203,21 @@ public partial class MatchView : Node2D
         }
     }
 
-    private void CaptureFrame()
+    private async Task CaptureFrameAsync()
     {
-        var image = GetViewport().GetTexture().GetImage();
-        var error = image.SavePng(_screenshotPath);
+        // The viewport texture is only valid once the frame has actually been drawn. Grabbing it
+        // from a deferred call instead happens to work sometimes and silently writes a blank
+        // image the rest of the time, which is worse than not capturing at all.
+        await ToSignal(RenderingServer.Singleton, RenderingServerInstance.SignalName.FramePostDraw);
 
+        var image = GetViewport().GetTexture().GetImage();
+        if (image is null || image.IsEmpty())
+        {
+            GD.Print($"{MatchMarker} screenshot-failed empty-viewport");
+            return;
+        }
+
+        var error = image.SavePng(_screenshotPath);
         GD.Print(error == Error.Ok
             ? $"{MatchMarker} screenshot {_screenshotPath}"
             : $"{MatchMarker} screenshot-failed {error}");

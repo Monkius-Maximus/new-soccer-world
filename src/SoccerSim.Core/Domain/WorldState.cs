@@ -1,3 +1,5 @@
+using SoccerSim.Core.Tactics;
+
 namespace SoccerSim.Core.Domain;
 
 /// <summary>
@@ -21,7 +23,7 @@ public sealed class WorldState
         IEnumerable<Club> clubs,
         IEnumerable<Player> players,
         IEnumerable<Competition> competitions)
-        : this(countries, cities, stadiums, clubs, players, competitions, [])
+        : this(countries, cities, stadiums, clubs, players, competitions, [], [])
     {
     }
 
@@ -33,7 +35,21 @@ public sealed class WorldState
         IEnumerable<Player> players,
         IEnumerable<Competition> competitions,
         IEnumerable<AppliedSimulationRun> simulationRuns)
+        : this(countries, cities, stadiums, clubs, players, competitions, simulationRuns, [])
     {
+    }
+
+    public WorldState(
+        IEnumerable<Country> countries,
+        IEnumerable<City> cities,
+        IEnumerable<Stadium> stadiums,
+        IEnumerable<Club> clubs,
+        IEnumerable<Player> players,
+        IEnumerable<Competition> competitions,
+        IEnumerable<AppliedSimulationRun> simulationRuns,
+        IEnumerable<ClubTacticSetup> clubTactics)
+    {
+        ClubTactics = clubTactics.OrderBy(x => x.ClubId).ToArray();
         Countries = countries.OrderBy(x => x.Id).ToArray();
         Cities = cities.OrderBy(x => x.Id).ToArray();
         Stadiums = stadiums.OrderBy(x => x.Id).ToArray();
@@ -50,6 +66,9 @@ public sealed class WorldState
     public IReadOnlyList<Player> Players { get; }
     public IReadOnlyList<Competition> Competitions { get; }
 
+    /// <summary>Each club's chosen setup, ordered by club.</summary>
+    public IReadOnlyList<ClubTacticSetup> ClubTactics { get; }
+
     /// <summary>Applied results, in career apply order.</summary>
     public IReadOnlyList<AppliedSimulationRun> SimulationRuns => _simulationRuns;
 
@@ -57,6 +76,13 @@ public sealed class WorldState
     public bool HasUnsavedChanges => _hasUnsavedChanges;
 
     public Club GetClub(int clubId) => Clubs.Single(x => x.Id == clubId);
+
+    /// <summary>
+    /// The club's setup, or a balanced default. A club without stored tactics still has to be
+    /// able to play, so this never throws.
+    /// </summary>
+    public TeamTactics TacticsFor(int clubId) =>
+        ClubTactics.FirstOrDefault(x => x.ClubId == clubId)?.Tactics ?? TeamTactics.Default;
 
     public IReadOnlyList<Player> GetRoster(int clubId) =>
         Players.Where(x => x.ClubId == clubId).OrderBy(x => x.SquadNumber).ThenBy(x => x.Id).ToArray();
@@ -99,5 +125,5 @@ public sealed class WorldState
     /// the match does cannot reach this instance.
     /// </summary>
     public WorldState Snapshot() =>
-        new(Countries, Cities, Stadiums, Clubs, Players, Competitions, _simulationRuns);
+        new(Countries, Cities, Stadiums, Clubs, Players, Competitions, _simulationRuns, ClubTactics);
 }

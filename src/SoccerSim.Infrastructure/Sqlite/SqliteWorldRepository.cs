@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Data.Sqlite;
 using SoccerSim.Core.Domain;
 using SoccerSim.Core.Persistence;
+using SoccerSim.Core.Tactics;
 
 namespace SoccerSim.Infrastructure.Sqlite;
 
@@ -19,7 +20,31 @@ public sealed class SqliteWorldRepository : IWorldRepository
             LoadClubs(connection),
             LoadPlayers(connection),
             LoadCompetitions(connection),
-            LoadSimulationRuns(connection));
+            LoadSimulationRuns(connection),
+            LoadClubTactics(connection));
+    }
+
+    private static IReadOnlyList<ClubTacticSetup> LoadClubTactics(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT club_id, formation, defensive_line_height, pressing_intensity, directness
+            FROM club_tactics
+            ORDER BY club_id;
+            """;
+        using var reader = command.ExecuteReader();
+        var rows = new List<ClubTacticSetup>();
+        while (reader.Read())
+        {
+            rows.Add(new ClubTacticSetup(
+                reader.GetInt32(0),
+                new TeamTactics(
+                    Formations.Parse(reader.GetString(1)),
+                    reader.GetInt32(2),
+                    reader.GetInt32(3),
+                    reader.GetInt32(4))));
+        }
+        return rows;
     }
 
     private static IReadOnlyList<AppliedSimulationRun> LoadSimulationRuns(SqliteConnection connection)

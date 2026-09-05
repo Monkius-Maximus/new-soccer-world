@@ -1,4 +1,5 @@
 using SoccerSim.Core.Domain;
+using SoccerSim.Core.Tactics;
 
 namespace SoccerSim.Core.Match;
 
@@ -12,18 +13,20 @@ namespace SoccerSim.Core.Match;
 /// </summary>
 public static class SquadSelection
 {
-    public static IReadOnlyList<Player> PickEleven(IReadOnlyList<Player> roster)
+    public static IReadOnlyList<Player> PickEleven(IReadOnlyList<Player> roster, FormationShape formation)
     {
-        if (roster.Count < Formation.Slots.Count)
+        ArgumentNullException.ThrowIfNull(formation);
+
+        if (roster.Count < formation.Slots.Count)
         {
             throw new InvalidOperationException(
-                $"A squad needs at least {Formation.Slots.Count} players, but only {roster.Count} were available.");
+                $"A squad needs at least {formation.Slots.Count} players, but only {roster.Count} were available.");
         }
 
         var remaining = roster.OrderBy(player => player.Id).ToList();
-        var eleven = new List<Player>(Formation.Slots.Count);
+        var eleven = new List<Player>(formation.Slots.Count);
 
-        foreach (var line in Formation.Slots)
+        foreach (var line in formation.Slots.Select(slot => slot.Line))
         {
             var pick = BestFor(remaining, line, naturalOnly: true)
                        ?? BestFor(remaining, line, naturalOnly: false)!;

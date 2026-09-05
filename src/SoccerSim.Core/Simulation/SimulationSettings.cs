@@ -21,7 +21,8 @@ public static class SimulationSettings
     /// <list type="bullet">
     ///   <item><description>1 — foundation probe, no football.</description></item>
     ///   <item><description>2 — MATCH-00 spatial simulation at a 50 ms step.</description></item>
+///   <item><description>3 — TACT-00 formations, roles and phase-aware shape.</description></item>
     /// </list>
     /// </summary>
-    public const int SimulationVersion = 2;
+    public const int SimulationVersion = 3;
 }

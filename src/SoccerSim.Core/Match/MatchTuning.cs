@@ -3,14 +3,17 @@ namespace SoccerSim.Core.Match;
 /// <summary>
 /// Every number the match balance depends on, in one place.
 /// <para>
-/// These are tuned against observed output, not guessed. Measured over 300 matches between two
-/// identically-rated squads:
+/// These are tuned against observed output, not guessed. Measured over 200 matches per setup,
+/// between identically-rated squads, so any difference is tactical rather than ability:
 /// <code>
-/// goals/match  3.14   (home 1.53, away 1.61)
-/// shots/match 28.3    of which 9.0 off target
-/// saves/match 16.0
-/// passes/match 928, interceptions 74, tackles 203
+///                             goals  shots  off  blocked  saved
+/// balanced vs balanced         3.29   29.4  9.7      0.1   16.3
+/// 4-3-3 press vs 5-3-2 block   3.14   34.5 10.5      2.2   16.7   (2.29 - 0.84)
+/// high press vs low block      3.39   29.4  9.5      0.1   16.3   (2.15 - 1.24)
 /// </code>
+/// Two things worth reading off that table: the settings decide matches between identical
+/// squads, and the shot column accounts for itself — every shot is off target, blocked, saved
+/// or a goal.
 /// Real top-flight football sits near 2.7 goals and 25 shots, so this is in range without
 /// claiming to be final. Changing any constant changes results for a given seed, so a change
 /// here is a <see cref="Simulation.SimulationSettings.SimulationVersion"/> bump once results ship.
@@ -22,6 +25,13 @@ public static class MatchTuning
 
     /// <summary>How often the player on the ball reconsiders. Between decisions they drive forward.</summary>
     public const double DecisionIntervalSeconds = 0.5;
+
+    /// <summary>How far the shape slides towards the ball, and the cap on that slide.</summary>
+    public const double ShapeDriftFactor = 0.30;
+    public const double MaxShapeDrift = 11.0;
+
+    /// <summary>Outfielders hold shape no closer than this to a goal line.</summary>
+    public const double OutfieldGoalLineMargin = 5.0;
 
     /// <summary>Distance within which a loose ball can be brought under control.</summary>
     public const double ControlRadius = 1.2;
@@ -43,6 +53,17 @@ public static class MatchTuning
 
     /// <summary>An opponent this close to the carrier is applying pressure and may challenge.</summary>
     public const double PressureRadius = 2.2;
+
+    /// <summary>How far a pressing side will send a second chaser after the ball.</summary>
+    public const double PressRadiusBase = 8.0;
+    public const double PressRadiusPerIntensity = 0.9;
+
+    /// <summary>Pressing intensity at or above which a second player leaves the shape.</summary>
+    public const int SecondPresserThreshold = 12;
+
+    /// <summary>How much a point of directness widens shooting range and willingness.</summary>
+    public const double ShootingRangePerDirectness = 0.7;
+    public const int ShotChancePerDirectness = 1;
 
     /// <summary>Shots are only attempted from inside this range.</summary>
     public const double ShootingRange = 25.0;

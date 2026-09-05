@@ -1,4 +1,5 @@
 using SoccerSim.Core.Domain;
+using SoccerSim.Core.Tactics;
 
 namespace SoccerSim.Core.Tests;
 
@@ -19,14 +20,26 @@ internal static class TestWorld
         PlayerPosition.Striker, PlayerPosition.Striker
     ];
 
+    /// <summary>An eleven of ordinary players, for exercising shape without running a match.</summary>
+    public static IReadOnlyList<Player> Eleven() => [.. Squad(HomeClubId, 100, 0).Take(11)];
+
     /// <param name="homeQuality">Shifts every home attribute, for testing that ability matters.</param>
-    public static WorldState Build(int homeQuality = 0, int awayQuality = 0) => new(
+    public static WorldState Build(
+        int homeQuality = 0,
+        int awayQuality = 0,
+        TeamTactics? homeTactics = null,
+        TeamTactics? awayTactics = null) => new(
         [new Country(1, "BRA", "Brasil")],
         [new City(1, 1, "Recife")],
         [new Stadium(1, 1, "Estadio das Pontes", 18000)],
         [new Club(HomeClubId, 1, 1, "Recife Azul", "RAZ"), new Club(AwayClubId, 1, 1, "Recife Vermelho", "RVM")],
         [.. Squad(HomeClubId, 100, homeQuality), .. Squad(AwayClubId, 200, awayQuality)],
-        [new Competition(1, 1, "Amistoso da Fundacao", "friendly")]);
+        [new Competition(1, 1, "Amistoso da Fundacao", "friendly")],
+        [],
+        [
+            .. homeTactics is null ? Array.Empty<ClubTacticSetup>() : [new ClubTacticSetup(HomeClubId, homeTactics)],
+            .. awayTactics is null ? Array.Empty<ClubTacticSetup>() : [new ClubTacticSetup(AwayClubId, awayTactics)]
+        ]);
 
     private static IEnumerable<Player> Squad(int clubId, int idBase, int quality) =>
         SquadShape.Select((position, index) => new Player(

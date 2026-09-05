@@ -8,6 +8,7 @@ public enum MatchEventKind
     Tackle,
     Shot,
     ShotOffTarget,
+    ShotBlocked,
     Save,
     Goal,
     OutOfPlay,

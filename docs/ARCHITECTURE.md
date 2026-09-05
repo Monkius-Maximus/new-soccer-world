@@ -90,7 +90,7 @@ Cross-platform bit-exact determinism is explicitly not promised. The determinist
 
 The fixed timestep is centralized at `SimulationSettings.FixedTimeStepMilliseconds`. Foundation carried a provisional 100 ms; MATCH-00 revised it to **50 ms**, which is what that provision was for. At 100 ms a sprinting player covers most of a metre per tick and pressing resolves in visible jumps, which would also make MATCH-01's visual slice stutter. Ball tunnelling is handled by segment tests rather than by tick rate, so this was a motion-quality decision, not a correctness one.
 
-`SimulationVersion` is now **2**. It is bumped whenever results for a given seed would change — tick length, tuning constants, or the rules themselves — and every stored result records the version that produced it, so a replay against a different version is detectable rather than silently wrong.
+`SimulationVersion` is now **3** (2 was MATCH-00 without tactics). It is bumped whenever results for a given seed would change — tick length, tuning constants, or the rules themselves — and every stored result records the version that produced it, so a replay against a different version is detectable rather than silently wrong.
 
 `DeterminismGuardTests` turns each clause of this contract into a failing build when violated: banned entropy sources (`Random.Shared`, `new Random(`, wall-clock reads, `Guid.NewGuid()`, `Environment.TickCount`, `Stopwatch.GetTimestamp`, `RandomNumberGenerator`) anywhere on the deterministic path, `Dictionary`/`HashSet` in Core, any mutable static field in the Core assembly (found by reflection, ignoring compiler-generated members), and more than one declaration of the fixed timestep.
 
@@ -170,6 +170,26 @@ Positions are deliberately **not** stored in `MatchResult`: a match is 108,000 t
 Stepping must not change the football, so a test asserts a stepped match produces a digest identical to the batch run. The Godot view accumulates wall-clock time and spends it in whole ticks, so frame rate decides how many ticks run per frame and never reaches the simulation. `scripts/godot-smoke-test.sh` closes the loop end to end: it plays the same seed through the console runner and through the rendered scene and fails if the two digests differ, which is what would happen if the screen ever started showing football that did not occur.
 
 The digest alone is not enough, though — it proves the simulation matched, not that the view reported it correctly. A frame can cover thousands of ticks at high speed, so reading a goal's time off the frame that noticed it put goals minutes away from where they happened, and made two bit-identical matches look like they had diverged. The view drains `MatchSimulation.Events` and reports each one at its own recorded minute, and the script compares goal times as well as digests.
+
+### Tactics (TACT-00)
+
+Before TACT-00 every club in the world played an identical 4-4-2, because the shape was a constant in code. A club now carries a `TeamTactics`: a named `FormationShape` plus three instructions on the same validated 1–20 scale player attributes use.
+
+Each instruction earns its place by changing a decision the match already makes — the same rule attributes are held to:
+
+| Instruction | Decision it feeds |
+|---|---|
+| `DefensiveLineHeight` | where the block rests without the ball |
+| `PressingIntensity` | whether a second player leaves the shape to chase, and from how far |
+| `Directness` | shooting range and willingness, and how heavily a pass must progress the ball |
+
+Absent on purpose: tempo, width, offside traps, set-piece routines. Nothing in the simulation would read them, and an instruction that changes nothing is a lie in the UI.
+
+**Roles are behaviour, not vocabulary.** A `PlayerRole` is defined entirely by how far its slot pushes forward in possession and drops out of possession. "Overlapping full-back" means twelve metres up and four metres back — there is no second role system behind the name, and a role that moved no number would be decoration.
+
+That is also what gives the match two phases. `MatchTeam.PhaseAnchor` returns a different resting position depending on whether the team has the ball, and a test asserts every outfield slot in every shipped formation stands further forward in possession than out of it.
+
+Formations are validated on construction: eleven slots, exactly one goalkeeper, in slot zero. `club_tactics` (migration `0005`) constrains formation names to the shapes the simulation can actually build, so an unknown name is a load failure rather than a club that silently falls back to something else.
 
 ## 7. Godot
 

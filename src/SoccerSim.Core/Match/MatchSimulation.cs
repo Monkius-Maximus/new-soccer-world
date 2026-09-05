@@ -1,5 +1,6 @@
 using SoccerSim.Core.Domain;
 using SoccerSim.Core.Simulation;
+using SoccerSim.Core.Tactics;
 
 namespace SoccerSim.Core.Match;
 
@@ -32,6 +33,7 @@ public sealed class MatchSimulation
     private Vec2 _ballLocation;
     private Vec2 _ballVelocity;
     private MatchPlayer? _carrier;
+    private MatchPlayer? _secondPresser;
     private int _lastToucherClubId;
     private bool _shotInFlight;
     private bool _shotContested;
@@ -51,10 +53,20 @@ public sealed class MatchSimulation
         _decisionInterval = Math.Max(1, (int)(MatchTuning.DecisionIntervalSeconds / _secondsPerTick));
 
         var world = context.WorldSnapshot;
+
+        var homeTactics = world.TacticsFor(context.HomeClubId);
+        var awayTactics = world.TacticsFor(context.AwayClubId);
+
         _home = new MatchTeam(
-            context.HomeClubId, SquadSelection.PickEleven(world.GetRoster(context.HomeClubId)), attackingPositiveX: true);
+            context.HomeClubId,
+            SquadSelection.PickEleven(world.GetRoster(context.HomeClubId), homeTactics.Formation),
+            attackingPositiveX: true,
+            homeTactics);
         _away = new MatchTeam(
-            context.AwayClubId, SquadSelection.PickEleven(world.GetRoster(context.AwayClubId)), attackingPositiveX: false);
+            context.AwayClubId,
+            SquadSelection.PickEleven(world.GetRoster(context.AwayClubId), awayTactics.Formation),
+            attackingPositiveX: false,
+            awayTactics);
 
         _everyone = [.. _home.Players, .. _away.Players];
         _targets = new Vec2[_everyone.Length];
@@ -279,6 +291,14 @@ public sealed class MatchSimulation
 
         var claimant = ResolveFiftyFifty(contenders, best);
 
+        // An outfielder who gets in the way of a shot has blocked it. Without this the event
+        // stream quietly loses several shots a match: they are neither saved, nor off target,
+        // nor goals, and a stream that cannot account for them is not a record of the match.
+        if (_shotInFlight && !claimant.IsGoalkeeper && claimant.ClubId != _lastToucherClubId)
+        {
+            Record(MatchEventKind.ShotBlocked, claimant.ClubId, claimant.PlayerId);
+        }
+
         // A keeper reaching a shot is not the same as stopping it. Roll once per shot: a beaten
         // keeper lets the ball run on, so whether it ends up a goal is still decided by geometry.
         if (_shotInFlight && claimant.IsGoalkeeper && claimant.ClubId != _lastToucherClubId)
@@ -374,8 +394,13 @@ public sealed class MatchSimulation
 
         var distanceToGoal = carrier.Location.DistanceTo(team.AttackingGoal);
 
-        if (distanceToGoal <= MatchTuning.ShootingRange &&
-            Chance(MatchTuning.ShotChancePerDecision + (carrier.Attributes.Shooting / 3)))
+        // A direct side shoots from further out and takes the chance more readily.
+        var directness = team.Tactics.Directness - 10;
+        var range = MatchTuning.ShootingRange + (directness * MatchTuning.ShootingRangePerDirectness);
+
+        if (distanceToGoal <= range &&
+            Chance(MatchTuning.ShotChancePerDecision + (carrier.Attributes.Shooting / 3)
+                   + (directness * MatchTuning.ShotChancePerDirectness)))
         {
             Shoot(carrier, team);
             return;
@@ -488,8 +513,10 @@ public sealed class MatchSimulation
             }
 
             // Prefer a team-mate closer to goal than the passer, without ignoring the safe ball.
+            // Directness decides how heavily forward progress outweighs keeping it simple.
             var progress = passer.Location.DistanceTo(goal) - mate.Location.DistanceTo(goal);
-            var score = progress - (distance * 0.25);
+            var safety = 0.45 - (team.Tactics.Directness * 0.02);
+            var score = progress - (distance * safety);
 
             if (score > bestScore)
             {
@@ -539,6 +566,15 @@ public sealed class MatchSimulation
         var defendingTeam = _carrier is null ? null : Opponent(TeamOf(_carrier));
         var presser = defendingTeam?.Nearest(_ballLocation, includeGoalkeeper: false);
 
+        // Pressing intensity buys a second chaser and widens the radius from which roles that
+        // press will leave their shape.
+        _secondPresser = null;
+        if (defendingTeam is not null && presser is not null &&
+            defendingTeam.Tactics.PressingIntensity >= MatchTuning.SecondPresserThreshold)
+        {
+            _secondPresser = NearestSupportingPresser(defendingTeam, presser);
+        }
+
         // Two passes on purpose. Targets depend on where players are, so deciding and moving in
         // one loop would let whoever is iterated first move into a position the next player then
         // reacts to — making the result depend on array order and handing the home side, which
@@ -552,6 +588,38 @@ public sealed class MatchSimulation
         {
             _everyone[i].MoveTowards(_targets[i], _secondsPerTick);
         }
+    }
+
+    /// <summary>The nearest additional player whose role presses, used by high-pressing sides.</summary>
+    private MatchPlayer? NearestSupportingPresser(MatchTeam team, MatchPlayer alreadyPressing)
+    {
+        MatchPlayer? best = null;
+        var bestDistance = double.MaxValue;
+        var radius = MatchTuning.PressRadiusBase
+                     + (team.Tactics.PressingIntensity * MatchTuning.PressRadiusPerIntensity);
+
+        for (var i = 0; i < team.Players.Count; i++)
+        {
+            var candidate = team.Players[i];
+            if (candidate.IsGoalkeeper || ReferenceEquals(candidate, alreadyPressing))
+            {
+                continue;
+            }
+
+            if (!team.Tactics.Formation.Slots[candidate.Slot].Role.Behaviour().Presses)
+            {
+                continue;
+            }
+
+            var distance = candidate.Location.DistanceSquaredTo(_ballLocation);
+            if (distance <= radius * radius && distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = candidate;
+            }
+        }
+
+        return best;
     }
 
     private Vec2 TargetFor(MatchPlayer player, MatchPlayer? presser)
@@ -571,7 +639,7 @@ public sealed class MatchSimulation
             return team.AttackingGoal;
         }
 
-        if (ReferenceEquals(player, presser))
+        if (ReferenceEquals(player, presser) || ReferenceEquals(player, _secondPresser))
         {
             return _ballLocation;
         }
@@ -586,10 +654,23 @@ public sealed class MatchSimulation
             }
         }
 
-        // Everyone else holds shape, shifted towards where the play actually is.
-        var anchor = Formation.Anchor(player.Slot, team.AttackingPositiveX);
-        var drift = (_ballLocation - Pitch.Centre) * 0.30;
-        return Pitch.Clamp(anchor + drift);
+        // Everyone else holds shape for the phase they are in, shifted towards the play.
+        var inPossession = _carrier is not null && _carrier.ClubId == team.ClubId;
+        var anchor = team.PhaseAnchor(player.Slot, inPossession);
+
+        // Drift is capped, and outfielders are kept off the goal lines. Without both, a deep
+        // block defending a ball near its own goal has every target pushed past the touchline,
+        // where clamping stacks the whole team in a single column on the line — which looks and
+        // plays nothing like a low block.
+        var raw = (_ballLocation - Pitch.Centre) * MatchTuning.ShapeDriftFactor;
+        var drift = new Vec2(
+            Math.Clamp(raw.X, -MatchTuning.MaxShapeDrift, MatchTuning.MaxShapeDrift),
+            Math.Clamp(raw.Y, -MatchTuning.MaxShapeDrift, MatchTuning.MaxShapeDrift));
+
+        var target = anchor + drift;
+        return new Vec2(
+            Math.Clamp(target.X, MatchTuning.OutfieldGoalLineMargin, Pitch.Length - MatchTuning.OutfieldGoalLineMargin),
+            Math.Clamp(target.Y, 0.0, Pitch.Width));
     }
 
     /// <summary>

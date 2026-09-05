@@ -34,3 +34,8 @@ INSERT INTO player (id, nationality_country_id, club_id, first_name, last_name, 
 INSERT INTO player (id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number, position_code, pace, stamina, strength, passing, shooting, tackling, dribbling, positioning, goalkeeping) VALUES (28, 1, 2, 'Renato', 'Rocha', '2002-07-20', 13, 'CB', 9, 15, 16, 8, 6, 15, 9, 15, 1);
 INSERT INTO player (id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number, position_code, pace, stamina, strength, passing, shooting, tackling, dribbling, positioning, goalkeeping) VALUES (29, 1, 2, 'Thiago', 'Tavares', '2003-08-21', 14, 'CM', 13, 15, 14, 15, 8, 13, 12, 16, 2);
 INSERT INTO player (id, nationality_country_id, club_id, first_name, last_name, birth_date, squad_number, position_code, pace, stamina, strength, passing, shooting, tackling, dribbling, positioning, goalkeeping) VALUES (30, 1, 2, 'Wesley', 'Vieira', '2004-09-22', 15, 'ST', 13, 14, 13, 13, 17, 3, 14, 12, 4);
+
+-- TACT-00: the two Recife clubs deliberately set up differently, so a match between them shows
+-- the tactical model doing something rather than two identical shapes cancelling out.
+INSERT INTO club_tactics (club_id, formation, defensive_line_height, pressing_intensity, directness) VALUES (1, '4-3-3', 15, 16, 13);
+INSERT INTO club_tactics (club_id, formation, defensive_line_height, pressing_intensity, directness) VALUES (2, '5-3-2', 6, 7, 8);

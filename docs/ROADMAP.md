@@ -52,7 +52,7 @@ Hardening the Foundation contracts that existed only on paper. No football gamep
 ### Legend applied
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
-- **Planned:** TACT-00 onward; no code exists for them.
+- **Planned:** COMP-00 onward; no code exists for them.
 - **Implemented:** FND-001…FND-019 (except FND-015, discarded) and CONS-001…CONS-008.
 - **Tested:** 48 tests — boundaries, determinism contract, match isolation, migrations + seed, the full save contract including rollback and discard, headless vertical slice, Godot presentation path, and the exported release build.
 
@@ -129,12 +129,43 @@ The reason MATCH-00 was built spatially: the scene renders that simulation rathe
 
 Deliberately not here: kits, sprites, animation, camera work, replays and UI chrome. `ART-SPIKE-001` owns rendering fidelity; this slice is about the simulation being watchable and provably the same one.
 
+## TACT-00 — formations, roles and phases
+
+Before this, every club in the world played an identical hard-coded 4-4-2, and positioning ignored whether the team had the ball.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| TACT-001 | 🟢 | `FormationShape` — validated data (11 slots, one keeper), three real shapes shipped |
+| TACT-002 | 🟢 | `PlayerRole` defined purely by how far a slot pushes forward and drops back |
+| TACT-003 | 🟢 | Two phases: `PhaseAnchor` differs with and without the ball |
+| TACT-004 | 🟢 | Three instructions on the 1–20 scale, each feeding an existing decision |
+| TACT-005 | 🟢 | `SquadSelection` fills the chosen formation instead of a fixed 4-4-2 |
+| TACT-006 | 🟢 | Migration `0005` + seed — the two Recife clubs deliberately set up differently |
+| TACT-007 | 🟢 | `ShotBlocked` event, so every shot has a named outcome |
+| TACT-008 | 🟢 | `SimulationVersion` → 3 |
+
+**TACT-00: 🟢** — 114 tests. Measured over 200 matches per setup between identically-rated squads, so any difference is tactical rather than ability:
+
+| Setup | goals | shots | off | blocked | saved | split |
+|---|---|---|---|---|---|---|
+| balanced vs balanced | 3.29 | 29.4 | 9.7 | 0.1 | 16.3 | 1.78 – 1.51 |
+| 4-3-3 press vs 5-3-2 block | 3.14 | 34.5 | 10.5 | 2.2 | 16.7 | 2.29 – 0.84 |
+| high press vs low block | 3.39 | 29.4 | 9.5 | 0.1 | 16.3 | 2.15 – 1.24 |
+
+Between identically-rated squads, the setup decides the match: an attacking press beats a low block 2.29 goals to 0.84. The settings move results rather than decorating a menu.
+
+Two things found by measurement rather than by reading:
+
+- **The shot column did not add up.** Seven shots a match were neither saved, off target nor goals. Defenders were blocking them and the event stream had no way to say so; `ShotBlocked` closes that, and a test now asserts every shot ends in an outcome the stream names.
+- **A deep block collapsed onto its own goal line.** Phase offsets plus the shift towards the ball pushed every target past the touchline, where clamping stacked the whole team into a single column — visible on screen, invisible in the digest. Drift is now capped and outfielders hold shape off the goal line. A test asserts a team keeps its spread, ignoring the players actually chasing the ball, since those are doing a job rather than holding shape.
+
+Deliberately absent: tempo, width, offside traps, set-piece routines, and per-player instructions. Nothing in the simulation reads them, and an instruction that changes nothing is a lie in the UI.
+
 ## Next canonical sequence
 
-1. `TACT-00` — formation/roles/in-possession/out-of-possession behavior.
-2. `COMP-00` — league/cup/calendar rules.
-3. `CLUB-00` — persistent club/squad systems.
-4. `CAREER-00` — first complete long-term club career loop.
+1. `COMP-00` — league/cup/calendar rules.
+2. `CLUB-00` — persistent club/squad systems.
+3. `CAREER-00` — first complete long-term club career loop.
 
 Before real MATCH performance work, define `PERF-001`: reference hardware, active-world size and maximum acceptable round-advance time. Do not invent FastMatchSimulation before that measurement.
 

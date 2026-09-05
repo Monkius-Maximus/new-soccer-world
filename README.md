@@ -4,13 +4,13 @@ Canonical implementation repository for the offline-first football simulation pr
 
 ## Current status
 
-**🔵 FOUNDATION-00**  ·  **🟢 PLYR-00**  ·  **🟢 MATCH-00**  ·  **🟢 MATCH-01 — visual 11v11 slice**
+**🔵 FOUNDATION-00**  ·  **🟢 PLYR-00**  ·  **🟢 MATCH-00**  ·  **🟢 MATCH-01**  ·  **🟢 TACT-00**
 
-CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 93 tests, and Godot 4.7.1 .NET runs both scenes headless and exports release builds for the two 1.0 desktop targets, with the exported Linux binary executed against a real career database.
+CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 114 tests, and Godot 4.7.1 .NET runs both scenes headless and exports release builds for the two 1.0 desktop targets, with the exported Linux binary executed against a real career database.
 
-`MATCH-00` simulates football spatially on a fixed 50 ms timestep — twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. Measured over 300 matches between evenly-rated squads: **3.14 goals and 28.3 shots per match**, neither side structurally favoured.
+Football is simulated spatially on a fixed 50 ms timestep — twenty-two players and a ball in metre-space on a 105 x 68 pitch. `MATCH-01` draws that simulation tick by tick rather than replaying a recording, and CI fails if the console and rendered matches ever disagree.
 
-`MATCH-01` draws that simulation. The scene steps `MatchSimulation` on its own fixed timestep and renders the current tick, so the screen shows the match rather than a recording of one. CI plays the same seed through the console runner and through the rendered scene and fails if the two digests differ.
+`TACT-00` makes the shape a choice. A club picks a formation and three instructions — defensive line height, pressing intensity, directness — and each one changes a decision the match already makes. Measured over 200 matches between identically-rated squads, a low block cuts scoring from 3.35 to 2.48 goals a match, and a high press is worth 2.13 goals to 1.23 against one.
 
 ### Status semantics
 
