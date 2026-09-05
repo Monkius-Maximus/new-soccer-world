@@ -22,7 +22,12 @@ public sealed class InfrastructureTests
             Assert.Equal("Recife", world.Cities[0].Name);
             Assert.Equal(2, world.Clubs.Count);
             Assert.Equal(30, world.Players.Count);
-            Assert.Single(world.Competitions);
+
+            // COMP-00: the friendly the Foundation shipped, plus the league a career plays.
+            Assert.Equal(
+                new[] { "friendly", "league" },
+                world.Competitions.Select(competition => competition.CompetitionType));
+            Assert.NotNull(world.Season);
         }
         finally
         {

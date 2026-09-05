@@ -4,13 +4,15 @@ Canonical implementation repository for the offline-first football simulation pr
 
 ## Current status
 
-**🔵 FOUNDATION-00**  ·  **🟢 PLYR-00**  ·  **🟢 MATCH-00**  ·  **🟢 MATCH-01**  ·  **🟢 TACT-00**
+**🔵 FOUNDATION-00**  ·  **🟢 PLYR-00**  ·  **🟢 MATCH-00**  ·  **🟢 MATCH-01**  ·  **🟢 TACT-00**  ·  **🟢 COMP-00**
 
-CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 114 tests, and Godot 4.7.1 .NET runs both scenes headless and exports release builds for the two 1.0 desktop targets, with the exported Linux binary executed against a real career database.
+CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 176 tests, and Godot 4.7.1 .NET runs all three scenes headless and exports release builds for the two 1.0 desktop targets, with the exported Linux binary executed against a real career database.
 
 Football is simulated spatially on a fixed 50 ms timestep — twenty-two players and a ball in metre-space on a 105 x 68 pitch. `MATCH-01` draws that simulation tick by tick rather than replaying a recording, and CI fails if the console and rendered matches ever disagree.
 
 `TACT-00` makes the shape a choice. A club picks a formation and three instructions — defensive line height, pressing intensity, directness — and each one changes a decision the match already makes. Measured over 200 matches between identically-rated squads, a low block cuts scoring from 3.35 to 2.48 goals a match, and a high press is worth 2.13 goals to 1.23 against one.
+
+`COMP-00` makes results accumulate. A career plays a league season: a generated double round-robin, a weekly calendar, and a table recomputed from the results behind it. Match seeds are derived from the career and the fixture, so a season replays identically whether it was advanced one round at a time or all at once. `Season.tscn` shows the table, and CI fails if the rendered standings and the console ones ever disagree.
 
 ### Status semantics
 
@@ -44,6 +46,8 @@ For the Godot smoke test, run it headless the way CI does:
 ```bash
 scripts/godot-smoke-test.sh /path/to/Godot_v4.7.1-stable_mono_linux.x86_64
 ```
+
+To see a league season played out, run `Season.tscn` with `SOCCER_SAVE_DB` set to a career `world.db`.
 
 To watch a match, open the project and run `Match.tscn`. `SOCCER_MATCH_SPEED` sets the time multiplier (default 30x, so a full match takes about three minutes) and `SOCCER_MATCH_SEED` picks the match.
 

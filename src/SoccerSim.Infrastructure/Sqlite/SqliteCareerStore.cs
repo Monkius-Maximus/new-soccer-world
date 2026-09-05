@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Data.Sqlite;
+using SoccerSim.Core.Competitions;
 using SoccerSim.Core.Domain;
 using SoccerSim.Core.Persistence;
 
@@ -102,6 +103,7 @@ public sealed class SqliteCareerStore : ICareerStore
         using var transaction = connection.BeginTransaction();
 
         WriteSimulationRuns(connection, transaction, world.SimulationRuns);
+        WriteSeason(connection, transaction, world.Season);
         WriteMetadata(connection, transaction, updated, insert: false);
 
         transaction.Commit();
@@ -119,12 +121,14 @@ public sealed class SqliteCareerStore : ICareerStore
         command.Transaction = transaction;
         command.CommandText = """
             INSERT INTO simulation_run
-                (ordinal, home_club_id, away_club_id, home_score, away_score,
-                 seed, simulation_version, ticks, digest)
+                (ordinal, competition_id, fixture_ordinal, home_club_id, away_club_id,
+                 home_score, away_score, seed, simulation_version, ticks, digest)
             VALUES
-                ($ordinal, $homeClubId, $awayClubId, $homeScore, $awayScore,
-                 $seed, $simulationVersion, $ticks, $digest)
+                ($ordinal, $competitionId, $fixtureOrdinal, $homeClubId, $awayClubId,
+                 $homeScore, $awayScore, $seed, $simulationVersion, $ticks, $digest)
             ON CONFLICT(ordinal) DO UPDATE SET
+                competition_id = excluded.competition_id,
+                fixture_ordinal = excluded.fixture_ordinal,
                 home_club_id = excluded.home_club_id,
                 away_club_id = excluded.away_club_id,
                 home_score = excluded.home_score,
@@ -136,6 +140,8 @@ public sealed class SqliteCareerStore : ICareerStore
             """;
 
         var ordinal = command.Parameters.Add("$ordinal", SqliteType.Integer);
+        var competitionId = command.Parameters.Add("$competitionId", SqliteType.Integer);
+        var fixtureOrdinal = command.Parameters.Add("$fixtureOrdinal", SqliteType.Integer);
         var homeClubId = command.Parameters.Add("$homeClubId", SqliteType.Integer);
         var awayClubId = command.Parameters.Add("$awayClubId", SqliteType.Integer);
         var homeScore = command.Parameters.Add("$homeScore", SqliteType.Integer);
@@ -149,6 +155,10 @@ public sealed class SqliteCareerStore : ICareerStore
         foreach (var run in runs)
         {
             ordinal.Value = run.Ordinal;
+            // Zero means "no competition" in the domain; the column keeps a real foreign key
+            // and says the same thing with NULL.
+            competitionId.Value = run.IsCompetitive ? run.CompetitionId : DBNull.Value;
+            fixtureOrdinal.Value = run.FixtureOrdinal;
             homeClubId.Value = run.HomeClubId;
             awayClubId.Value = run.AwayClubId;
             homeScore.Value = run.HomeScore;
@@ -158,6 +168,49 @@ public sealed class SqliteCareerStore : ICareerStore
             ticks.Value = run.Ticks;
             digest.Value = run.Digest.ToString(CultureInfo.InvariantCulture);
             command.ExecuteNonQuery();
+        }
+    }
+
+    /// <summary>
+    /// Writes the season in progress. Only the current matchday ever moves, but the row is
+    /// written whole so a career that gained a season since the template still lands.
+    /// </summary>
+    private static void WriteSeason(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        Season? season)
+    {
+        if (season is null)
+        {
+            return;
+        }
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO season (id, competition_id, start_date, current_matchday)
+            VALUES (1, $competitionId, $startDate, $currentMatchday)
+            ON CONFLICT(id) DO UPDATE SET
+                competition_id = excluded.competition_id,
+                start_date = excluded.start_date,
+                current_matchday = excluded.current_matchday;
+            """;
+        command.Parameters.AddWithValue("$competitionId", season.CompetitionId);
+        command.Parameters.AddWithValue(
+            "$startDate", season.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$currentMatchday", season.CurrentMatchday);
+        command.ExecuteNonQuery();
+
+        // Entrants do not change mid-season, so this only has to create them once.
+        using var entrants = connection.CreateCommand();
+        entrants.Transaction = transaction;
+        entrants.CommandText =
+            "INSERT INTO season_club (season_id, club_id) VALUES (1, $clubId) ON CONFLICT DO NOTHING;";
+        var clubId = entrants.Parameters.Add("$clubId", SqliteType.Integer);
+        foreach (var id in season.ClubIds)
+        {
+            clubId.Value = id;
+            entrants.ExecuteNonQuery();
         }
     }
 

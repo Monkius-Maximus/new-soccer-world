@@ -191,7 +191,37 @@ That is also what gives the match two phases. `MatchTeam.PhaseAnchor` returns a 
 
 Formations are validated on construction: eleven slots, exactly one goalkeeper, in slot zero. `club_tactics` (migration `0005`) constrains formation names to the shapes the simulation can actually build, so an unknown name is a load failure rather than a club that silently falls back to something else.
 
-## 7. Godot
+## 7. Competitions (COMP-00)
+
+Before this, a career could only play friendlies: `ApplySimulationRun` recorded that two clubs met and what the score was, and nothing tied one match to the next. COMP-00 adds the thing that makes results accumulate into something — a league season.
+
+### Fixtures are generated, not stored
+
+`RoundRobinScheduler` builds a double round-robin with the circle method. It takes no randomness at all: a draw that shuffled would make a season unreplayable from its seed, which the determinism contract forbids. Odd entrant counts get a bye each round, so the generator works for whatever size the world happens to be.
+
+`Season` is therefore a cursor — competition, start date, entrants, current matchday — and its fixture list is derived on demand. A stored fixture table would be a second source of truth from the moment anything disagreed with the generator, and nothing yet postpones or redraws a match. A postponement feature is what would make that table earn its place; until then it would be structure nothing exercises.
+
+The same reasoning keeps the league table out of the database. `LeagueTable.Build` recomputes the standings from applied results every time, exactly as PLYR-00 refused to store an overall rating.
+
+### Match seeds come from the career, not from play order
+
+`MatchSeeds.For(careerSeed, competitionId, fixtureOrdinal)` mixes the three with FNV-1a. That is what makes a season reproducible: the result of matchday 14 does not depend on whether the first thirteen were played one at a time, in one go, or in a different order, and a single fixture can be re-simulated in isolation without replaying the ones before it.
+
+`AdvanceMatchday` applies every result of a round and only then moves the cursor, so an interrupted advance can be retried without half a round going missing.
+
+### What a result now carries
+
+`AppliedSimulationRun` gains `CompetitionId` and `FixtureOrdinal`. Zero on both means a friendly, and `IsCompetitive` says so in one place. In the database the pair is stored as `NULL` and `0` instead, so `competition_id` keeps a real foreign key; migration `0006` constrains the two to agree, since a result that half belongs to a competition is not a state the loader could make sense of. The season itself is one row plus its entrants, constrained to a single season because that is exactly what `WorldState` models — careers running several competitions at once are CAREER-00's problem, and a table shaped for them today would be shaped by guesswork.
+
+### The cup is deliberately absent
+
+The shipped world has two clubs. A league of two is degenerate but real — a home-and-away pair with a table that adds up. A cup of two is a single final. Building bracket generation, seeding, byes and replay rules that nothing in the world could exercise is exactly the speculative abstraction this project forbids, and it would be designed against imagined content rather than real content. The cup belongs with the milestone that ships enough clubs to need one.
+
+### Showing it
+
+`Season.tscn` plays the career's season through the Application and renders the table; the headless runner does the same thing on the console. Both print one record line per standing, and CI fails if they differ — the same argument MATCH-01 made about a rendered match, one level up. A table is just as capable of being wrong on screen as a scoreline is.
+
+## 8. Godot
 
 Godot is the primary presentation/runtime engine, not the authority for football rules. The Foundation project targets `net10.0` with `Godot.NET.Sdk/4.7.1` and is validated in CI as a normal .NET build.
 
@@ -210,7 +240,7 @@ Two things about this are easy to get wrong and are worth writing down:
 
 `export_presets.cfg` is tracked rather than gitignored, because CI needs the export to be reproducible. Keep its paths relative and never put signing credentials in it.
 
-## 8. Explicitly deferred
+## 9. Explicitly deferred
 
 The following are not Foundation contracts:
 
@@ -222,4 +252,7 @@ The following are not Foundation contracts:
 - Life World
 - Player Career
 - transfer/scouting systems
+- knockout competitions (see the cup note in section 7)
+- promotion, relegation and multi-division structures
+- fixture postponement and congestion
 - complete competition engine

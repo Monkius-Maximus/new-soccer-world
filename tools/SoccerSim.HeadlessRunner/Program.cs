@@ -112,6 +112,51 @@ var stored = committed.World.SimulationRuns[0];
 Console.WriteLine(
     $"Save contract: committed {stored.HomeScore}-{stored.AwayScore}; " +
     $"discarded {career.World.SimulationRuns.Count - discarded.World.SimulationRuns.Count} unsaved run(s).");
+
+// COMP-00: play the league season out of a freshly reopened career and print the final table.
+// Nothing is checkpointed, so the save on disk stays at matchday zero and the Godot scene can
+// advance the same season from the same starting point and be compared against this run.
+var league = application.OpenCareer(career.Save.DatabasePath);
+if (league.World.Season is null)
+{
+    Console.Error.WriteLine("The seeded world carries no league season.");
+    return 17;
+}
+
+while (!league.World.Season!.IsComplete)
+{
+    var matchday = league.World.Season!.CurrentMatchday + 1;
+    foreach (var run in application.AdvanceMatchday(league))
+    {
+        Console.WriteLine(
+            $"  MD{matchday} fixture {run.FixtureOrdinal}: " +
+            $"club {run.HomeClubId} {run.HomeScore}-{run.AwayScore} club {run.AwayClubId}   " +
+            $"digest={run.Digest:X16}");
+    }
+}
+
+var seasonView = new SeasonQueryService().GetSeason(league.World)!;
+Console.WriteLine($"--- {seasonView.CompetitionName} ---");
+Console.WriteLine("Pos Club   Pl  W  D  L  GF  GA Pts");
+foreach (var standing in seasonView.Standings)
+{
+    var row = standing.Row;
+    Console.WriteLine(
+        $"{standing.Position,3} {standing.ShortName,-6} {row.Played,2} {row.Won,2} {row.Drawn,2} " +
+        $"{row.Lost,2} {row.GoalsFor,3} {row.GoalsAgainst,3} {row.Points,3}");
+    Console.WriteLine($"[SOCCER-TABLE] {standing.ToRecordLine()}");
+}
+
+Console.WriteLine(
+    $"[SOCCER-SEASON] competition={seasonView.CompetitionId} " +
+    $"matchdays={seasonView.TotalMatchdays} played={seasonView.Fixtures.Count(f => f.IsPlayed)}");
+
+if (!seasonView.Fixtures.All(f => f.IsPlayed))
+{
+    Console.Error.WriteLine("A completed season left fixtures unplayed.");
+    return 18;
+}
+
 Console.WriteLine("Headless vertical slice passed.");
 return 0;
 

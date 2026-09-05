@@ -109,4 +109,38 @@ fi
 
 echo "==> Goal times agree: [${VIEW_GOALS:-none}]"
 echo "==> Rendered and console matches agree: $VIEW_DIGEST"
+
+# COMP-00: the same argument one level up. The console runner played the league season out of
+# the save it created; Season.tscn plays the same season out of the same save through the same
+# use case. Both print one record line per standing, and they have to be identical — a table is
+# just as capable of being wrong on screen as a scoreline is.
+CONSOLE_TABLE=$(grep -oP "\[SOCCER-TABLE\] \K.*" <<<"$CONSOLE" | sort)
+CONSOLE_SEASON=$(grep -oP "\[SOCCER-SEASON\] \K.*" <<<"$CONSOLE" | head -1)
+
+if [ -z "$CONSOLE_TABLE" ]; then
+    echo "FAIL: the console runner produced no league table." >&2
+    exit 1
+fi
+
+cd "$REPO_ROOT/game/SoccerDreamGame"
+echo "==> Season table, same career"
+SEASON_OUTPUT=$(SOCCER_SAVE_DB="$SAVE_DB" SOCCER_SMOKE_EXIT=1 "$GODOT" --headless res://Season.tscn 2>&1)
+echo "$SEASON_OUTPUT"
+
+VIEW_TABLE=$(grep -oP "\[SOCCER-TABLE\] \K.*" <<<"$SEASON_OUTPUT" | sort)
+VIEW_SEASON=$(grep -oP "\[SOCCER-SEASON\] \K.*" <<<"$SEASON_OUTPUT" | head -1)
+
+if [ "$VIEW_TABLE" != "$CONSOLE_TABLE" ]; then
+    echo "FAIL: the rendered league table diverged from the console table." >&2
+    diff <(echo "$CONSOLE_TABLE") <(echo "$VIEW_TABLE") >&2 || true
+    exit 1
+fi
+
+if [ "$VIEW_SEASON" != "$CONSOLE_SEASON" ]; then
+    echo "FAIL: the rendered season summary diverged from the console one." >&2
+    echo "      console=$CONSOLE_SEASON  view=$VIEW_SEASON" >&2
+    exit 1
+fi
+
+echo "==> Rendered and console league tables agree ($CONSOLE_SEASON)"
 echo "==> Godot smoke test passed."

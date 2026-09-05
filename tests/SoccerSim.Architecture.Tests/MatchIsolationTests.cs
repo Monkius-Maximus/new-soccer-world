@@ -89,11 +89,11 @@ public sealed class MatchIsolationTests
     public void Mutating_a_snapshot_cannot_reach_the_world_it_came_from()
     {
         var world = BuildWorld();
-        world.ApplySimulationRun(1, 2, 0, 0, 1UL, SimulationSettings.SimulationVersion, 128, 42UL);
+        world.ApplySimulationRun(0, 0, 1, 2, 0, 0, 1UL, SimulationSettings.SimulationVersion, 128, 42UL);
         world.MarkPersisted();
 
         var snapshot = world.Snapshot();
-        snapshot.ApplySimulationRun(2, 1, 1, 0, 99UL, SimulationSettings.SimulationVersion, 128, 7UL);
+        snapshot.ApplySimulationRun(0, 0, 2, 1, 1, 0, 99UL, SimulationSettings.SimulationVersion, 128, 7UL);
 
         // The snapshot moved on; the career world did not.
         Assert.Equal(2, snapshot.SimulationRuns.Count);
@@ -114,7 +114,7 @@ public sealed class MatchIsolationTests
             new MatchContext(1, 2, 5UL, SimulationSettings.SimulationVersion, world.Snapshot()));
         Assert.False(world.HasUnsavedChanges);
 
-        world.ApplySimulationRun(1, 2, 2, 1, 5UL, SimulationSettings.SimulationVersion, 128, 1UL);
+        world.ApplySimulationRun(0, 0, 1, 2, 2, 1, 5UL, SimulationSettings.SimulationVersion, 128, 1UL);
         Assert.True(world.HasUnsavedChanges);
     }
 

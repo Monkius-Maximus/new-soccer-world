@@ -39,3 +39,11 @@ INSERT INTO player (id, nationality_country_id, club_id, first_name, last_name, 
 -- the tactical model doing something rather than two identical shapes cancelling out.
 INSERT INTO club_tactics (club_id, formation, defensive_line_height, pressing_intensity, directness) VALUES (1, '4-3-3', 15, 16, 13);
 INSERT INTO club_tactics (club_id, formation, defensive_line_height, pressing_intensity, directness) VALUES (2, '5-3-2', 6, 7, 8);
+
+-- COMP-00: the two Recife clubs contest a league, and a new career starts on its first
+-- matchday. A double round-robin between two clubs is two matchdays, one at each ground —
+-- small, but a real season with a real table rather than a placeholder.
+INSERT INTO competition (id, country_id, name, competition_type) VALUES (2, 1, 'Campeonato Pernambucano', 'league');
+INSERT INTO season (id, competition_id, start_date, current_matchday) VALUES (1, 2, '2026-02-07', 0);
+INSERT INTO season_club (season_id, club_id) VALUES (1, 1);
+INSERT INTO season_club (season_id, club_id) VALUES (1, 2);

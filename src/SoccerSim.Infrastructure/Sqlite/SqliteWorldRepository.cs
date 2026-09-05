@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Data.Sqlite;
+using SoccerSim.Core.Competitions;
 using SoccerSim.Core.Domain;
 using SoccerSim.Core.Persistence;
 using SoccerSim.Core.Tactics;
@@ -21,7 +22,49 @@ public sealed class SqliteWorldRepository : IWorldRepository
             LoadPlayers(connection),
             LoadCompetitions(connection),
             LoadSimulationRuns(connection),
-            LoadClubTactics(connection));
+            LoadClubTactics(connection),
+            LoadSeason(connection));
+    }
+
+    /// <summary>
+    /// The season in progress, or null when the career has none. The schema allows a single
+    /// row, matching what <see cref="WorldState"/> models.
+    /// </summary>
+    private static Season? LoadSeason(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT s.competition_id, s.start_date, s.current_matchday
+            FROM season s
+            WHERE s.id = 1;
+            """;
+
+        int competitionId;
+        DateOnly startDate;
+        int currentMatchday;
+
+        using (var reader = command.ExecuteReader())
+        {
+            if (!reader.Read())
+            {
+                return null;
+            }
+
+            competitionId = reader.GetInt32(0);
+            startDate = DateOnly.ParseExact(reader.GetString(1), "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            currentMatchday = reader.GetInt32(2);
+        }
+
+        using var entrants = connection.CreateCommand();
+        entrants.CommandText = "SELECT club_id FROM season_club WHERE season_id = 1 ORDER BY club_id;";
+        using var entrantReader = entrants.ExecuteReader();
+        var clubIds = new List<int>();
+        while (entrantReader.Read())
+        {
+            clubIds.Add(entrantReader.GetInt32(0));
+        }
+
+        return new Season(competitionId, startDate, currentMatchday, clubIds);
     }
 
     private static IReadOnlyList<ClubTacticSetup> LoadClubTactics(SqliteConnection connection)
@@ -51,8 +94,8 @@ public sealed class SqliteWorldRepository : IWorldRepository
     {
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT ordinal, home_club_id, away_club_id, home_score, away_score,
-                   seed, simulation_version, ticks, digest
+            SELECT ordinal, competition_id, fixture_ordinal, home_club_id, away_club_id,
+                   home_score, away_score, seed, simulation_version, ticks, digest
             FROM simulation_run
             ORDER BY ordinal;
             """;
@@ -62,14 +105,18 @@ public sealed class SqliteWorldRepository : IWorldRepository
         {
             rows.Add(new AppliedSimulationRun(
                 reader.GetInt32(0),
-                reader.GetInt32(1),
+                // A friendly is stored as NULL so the foreign key stays real; the domain says
+                // "no competition" with zero.
+                reader.IsDBNull(1) ? 0 : reader.GetInt32(1),
                 reader.GetInt32(2),
                 reader.GetInt32(3),
                 reader.GetInt32(4),
-                ulong.Parse(reader.GetString(5), CultureInfo.InvariantCulture),
+                reader.GetInt32(5),
                 reader.GetInt32(6),
-                reader.GetInt32(7),
-                ulong.Parse(reader.GetString(8), CultureInfo.InvariantCulture)));
+                ulong.Parse(reader.GetString(7), CultureInfo.InvariantCulture),
+                reader.GetInt32(8),
+                reader.GetInt32(9),
+                ulong.Parse(reader.GetString(10), CultureInfo.InvariantCulture)));
         }
         return rows;
     }

@@ -13,4 +13,6 @@ internal static class CompositionRoot
     public static CareerApplication CreateCareerApplication() => new(new SqliteCareerStore());
 
     public static ClubRosterQueryService CreateRosterQuery() => new();
+
+    public static SeasonQueryService CreateSeasonQuery() => new();
 }

@@ -217,7 +217,7 @@ public sealed class CheckpointSemanticsTests : IDisposable
         _application.Save(career, Start.AddMinutes(5));
 
         // Apply a run that violates the schema's club foreign key, so the commit must fail.
-        career.World.ApplySimulationRun(9999, 8888, 1, 0, 77UL, SimulationSettings.SimulationVersion, Ticks, 5UL);
+        career.World.ApplySimulationRun(0, 0, 9999, 8888, 1, 0, 77UL, SimulationSettings.SimulationVersion, Ticks, 5UL);
 
         Assert.ThrowsAny<Exception>(() => _application.Save(career, Start.AddMinutes(6)));
 

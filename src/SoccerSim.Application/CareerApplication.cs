@@ -1,3 +1,4 @@
+using SoccerSim.Core.Competitions;
 using SoccerSim.Core.Domain;
 using SoccerSim.Core.Match;
 using SoccerSim.Core.Persistence;
@@ -118,6 +119,53 @@ public sealed class CareerApplication
             SimulationSettings.SimulationVersion,
             career.World.Snapshot()));
 
+    /// <summary>
+    /// Plays every fixture of the next matchday and applies the results, then moves the season
+    /// on. The round is advanced only after all of its results have landed, so an interrupted
+    /// call can be retried without half a matchday going missing.
+    /// </summary>
+    /// <returns>The results that were applied, in the order they landed.</returns>
+    public IReadOnlyList<AppliedSimulationRun> AdvanceMatchday(ActiveCareer career)
+    {
+        var season = career.World.Season
+            ?? throw new InvalidOperationException("The career has no season in progress.");
+
+        if (season.IsComplete)
+        {
+            throw new InvalidOperationException("The season is already complete.");
+        }
+
+        var fixtures = season.NextFixtures();
+        var careerSeed = career.Save.Metadata.CareerSeed;
+
+        // Each fixture gets a seed derived from the career, not from play order, so the round
+        // is identical however it is reached.
+        var outcomes = fixtures
+            .Select(fixture => new MatchOutcome(
+                fixture.HomeClubId,
+                fixture.AwayClubId,
+                MatchSimulation.Run(new MatchContext(
+                    fixture.HomeClubId,
+                    fixture.AwayClubId,
+                    MatchSeeds.For(careerSeed, fixture.CompetitionId, fixture.Ordinal),
+                    SimulationSettings.SimulationVersion,
+                    career.World.Snapshot())),
+                fixture.CompetitionId,
+                fixture.Ordinal))
+            .ToArray();
+
+        var applied = ApplyOutcomes(career, outcomes);
+        career.World.AdvanceMatchday();
+        return applied;
+    }
+
+    /// <summary>The standings for the career's competition, recomputed from applied results.</summary>
+    public IReadOnlyList<LeagueRow> LeagueTableFor(ActiveCareer career, int competitionId) =>
+        LeagueTable.Build(
+            [.. career.World.Clubs.Select(club => club.Id)],
+            career.World.SimulationRuns,
+            competitionId);
+
     /// <summary>Wraps a finished simulation as an outcome ready for <see cref="ApplyOutcomes"/>.</summary>
     public static MatchOutcome OutcomeOf(MatchSimulation simulation)
     {
@@ -140,8 +188,12 @@ public sealed class CareerApplication
         ActiveCareer career,
         IEnumerable<MatchOutcome> outcomes)
     {
+        // Fixture order first: within a competition it is the natural sequence, and it stays
+        // total for friendlies, which carry ordinal zero and fall back to the club/seed keys.
         var ordered = outcomes
-            .OrderBy(outcome => outcome.HomeClubId)
+            .OrderBy(outcome => outcome.CompetitionId)
+            .ThenBy(outcome => outcome.FixtureOrdinal)
+            .ThenBy(outcome => outcome.HomeClubId)
             .ThenBy(outcome => outcome.AwayClubId)
             .ThenBy(outcome => outcome.Result.Seed)
             .ToArray();
@@ -150,6 +202,8 @@ public sealed class CareerApplication
         foreach (var outcome in ordered)
         {
             applied.Add(career.World.ApplySimulationRun(
+                outcome.CompetitionId,
+                outcome.FixtureOrdinal,
                 outcome.HomeClubId,
                 outcome.AwayClubId,
                 outcome.Result.HomeScore,

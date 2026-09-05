@@ -11,6 +11,8 @@ namespace SoccerSim.Core.Domain;
 /// </summary>
 public sealed record AppliedSimulationRun(
     int Ordinal,
+    int CompetitionId,
+    int FixtureOrdinal,
     int HomeClubId,
     int AwayClubId,
     int HomeScore,
@@ -20,6 +22,9 @@ public sealed record AppliedSimulationRun(
     int Ticks,
     ulong Digest)
 {
+    /// <summary>Zero when the match belonged to no competition, such as a one-off friendly.</summary>
+    public bool IsCompetitive => CompetitionId != 0;
+
     public override string ToString() =>
-        $"#{Ordinal} {HomeClubId} {HomeScore}-{AwayScore} {AwayClubId} (seed {Seed})";
+        $"#{Ordinal} comp {CompetitionId} fix {FixtureOrdinal}: {HomeClubId} {HomeScore}-{AwayScore} {AwayClubId}";
 }

@@ -161,11 +161,50 @@ Two things found by measurement rather than by reading:
 
 Deliberately absent: tempo, width, offside traps, set-piece routines, and per-player instructions. Nothing in the simulation reads them, and an instruction that changes nothing is a lie in the UI.
 
+## COMP-00 — league season and calendar
+
+Before this, a career could only play friendlies. Results were recorded but nothing tied one match to the next.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| COMP-001 | 🟢 | `RoundRobinScheduler` — deterministic double round-robin, byes for odd entrant counts |
+| COMP-002 | 🟢 | `Season` — a cursor over a generated calendar; fixtures derived, never stored |
+| COMP-003 | 🟢 | `LeagueTable` — standings recomputed from results, total tie-break order |
+| COMP-004 | 🟢 | `MatchSeeds` — seeds derived from career + fixture, not from play order |
+| COMP-005 | 🟢 | `AppliedSimulationRun` carries competition and fixture; friendlies stay ordinal zero |
+| COMP-006 | 🟢 | Migration `0006` — `season`, `season_club`, and the two new `simulation_run` columns |
+| COMP-007 | 🟢 | Seed — the two Recife clubs contest a league; a new career starts at matchday zero |
+| COMP-008 | 🟢 | `CareerApplication.AdvanceMatchday` — plays a round, then moves the season on |
+| COMP-009 | 🟢 | `SeasonQueryService` + `Season.tscn` — the table on screen, through a use case |
+| COMP-010 | 🟢 | CI gate: the rendered table and the console table must be identical |
+| COMP-011 | 🔴 | Cup / knockout format — deferred with a stated reason, see below |
+
+**COMP-00: 🟢** — 176 tests. Measured on a synthetic 20-club league, the largest shape the scheduler is tested against:
+
+| Measure | Value |
+|---|---|
+| Fixtures in a season | 380 across 38 matchdays |
+| Time to play the season (Release) | 21.3 s, 56.2 ms per match |
+| Goals per match | 3.24 |
+| Home / draw / away | 137 / 99 / 144 |
+
+The per-match cost is unchanged from MATCH-00's ~60 ms and flat in world size — 56 ms per match at 2 clubs and at 20 — so a season costs what its matches cost and nothing more. With identical squads and no home advantage modelled, home and away wins land within a handful of each other across 380 matches, which is the same absence of structural bias MATCH-009 established for a single fixture.
+
+The scheduler was written test-first, deliberately: round-robin generators fail subtly — a pair that meets three times, a club playing twice in a round, a season quietly one match short — and none of those are visible by reading the code. Twenty-six tests cover every entrant count from 2 to 20, and all passed on the first run.
+
+Two guards were verified by injecting the violation they claim to catch, as every guard in this repo is:
+
+- Corrupting the rendered table by one character made the CI comparison fail, so the gate is real rather than decorative.
+- The `0006` `CHECK` constraints reject a result that half belongs to a competition, a competition type nothing can schedule, and a second season row. All three are asserted by tests that expect the insert to be refused.
+
+**The cup is deliberately not built.** The shipped world has two clubs. A league of two is degenerate but real — a home-and-away pair with a table that adds up. A cup of two is a single final. Bracket generation, seeding, byes and replay rules would all be designed against imagined content, which is exactly the speculative abstraction this project forbids. The cup belongs with the milestone that ships enough clubs to need one.
+
+Also deliberately absent: promotion and relegation, multiple divisions, fixture postponement, congestion, and any calendar finer than one round a week. Nothing in the world exercises them yet.
+
 ## Next canonical sequence
 
-1. `COMP-00` — league/cup/calendar rules.
-2. `CLUB-00` — persistent club/squad systems.
-3. `CAREER-00` — first complete long-term club career loop.
+1. `CLUB-00` — persistent club/squad systems.
+2. `CAREER-00` — first complete long-term club career loop, which is where a second competition, and therefore a cup, first has real content behind it.
 
 Before real MATCH performance work, define `PERF-001`: reference hardware, active-world size and maximum acceptable round-advance time. Do not invent FastMatchSimulation before that measurement.
 

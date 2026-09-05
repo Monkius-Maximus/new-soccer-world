@@ -1,3 +1,4 @@
+using SoccerSim.Core.Competitions;
 using SoccerSim.Core.Tactics;
 
 namespace SoccerSim.Core.Domain;
@@ -14,6 +15,7 @@ namespace SoccerSim.Core.Domain;
 public sealed class WorldState
 {
     private readonly List<AppliedSimulationRun> _simulationRuns;
+    private Season? _season;
     private bool _hasUnsavedChanges;
 
     public WorldState(
@@ -47,8 +49,10 @@ public sealed class WorldState
         IEnumerable<Player> players,
         IEnumerable<Competition> competitions,
         IEnumerable<AppliedSimulationRun> simulationRuns,
-        IEnumerable<ClubTacticSetup> clubTactics)
+        IEnumerable<ClubTacticSetup> clubTactics,
+        Season? season = null)
     {
+        _season = season;
         ClubTactics = clubTactics.OrderBy(x => x.ClubId).ToArray();
         Countries = countries.OrderBy(x => x.Id).ToArray();
         Cities = cities.OrderBy(x => x.Id).ToArray();
@@ -65,6 +69,17 @@ public sealed class WorldState
     public IReadOnlyList<Club> Clubs { get; }
     public IReadOnlyList<Player> Players { get; }
     public IReadOnlyList<Competition> Competitions { get; }
+
+    /// <summary>
+    /// The competition in progress, or null when the career has no season running.
+    /// <para>
+    /// Backed by a field rather than a private setter so the property is genuinely read-only:
+    /// the architecture test that forbids a mutation surface on <see cref="WorldState"/> counts
+    /// any setter, and weakening it to "public setters only" to fit this in would have traded a
+    /// real guard for a convenience.
+    /// </para>
+    /// </summary>
+    public Season? Season => _season;
 
     /// <summary>Each club's chosen setup, ordered by club.</summary>
     public IReadOnlyList<ClubTacticSetup> ClubTactics { get; }
@@ -92,6 +107,8 @@ public sealed class WorldState
     /// after a match has finished; a running match never reaches the world it came from.
     /// </summary>
     public AppliedSimulationRun ApplySimulationRun(
+        int competitionId,
+        int fixtureOrdinal,
         int homeClubId,
         int awayClubId,
         int homeScore,
@@ -103,6 +120,8 @@ public sealed class WorldState
     {
         var applied = new AppliedSimulationRun(
             _simulationRuns.Count + 1,
+            competitionId,
+            fixtureOrdinal,
             homeClubId,
             awayClubId,
             homeScore,
@@ -117,6 +136,27 @@ public sealed class WorldState
         return applied;
     }
 
+    /// <summary>
+    /// Moves the season on by one round. Called by the Application after the round's results
+    /// have been applied, so a half-played matchday can never be marked as done.
+    /// </summary>
+    public Season AdvanceMatchday()
+    {
+        if (_season is null)
+        {
+            throw new InvalidOperationException("The career has no season in progress.");
+        }
+
+        if (_season.IsComplete)
+        {
+            throw new InvalidOperationException("The season is already complete.");
+        }
+
+        _season = _season with { CurrentMatchday = _season.CurrentMatchday + 1 };
+        _hasUnsavedChanges = true;
+        return _season;
+    }
+
     /// <summary>Called by the persistence layer once a checkpoint has committed.</summary>
     public void MarkPersisted() => _hasUnsavedChanges = false;
 
@@ -125,5 +165,5 @@ public sealed class WorldState
     /// the match does cannot reach this instance.
     /// </summary>
     public WorldState Snapshot() =>
-        new(Countries, Cities, Stadiums, Clubs, Players, Competitions, _simulationRuns, ClubTactics);
+        new(Countries, Cities, Stadiums, Clubs, Players, Competitions, _simulationRuns, ClubTactics, _season);
 }
