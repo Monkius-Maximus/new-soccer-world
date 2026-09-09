@@ -9,6 +9,7 @@ This file describes implementation status, not just ideas.
 | 🟡 | In progress / requires attention |
 | 🟢 | Completed |
 | 🔵 | Module consolidated |
+| ⬜ | Decided / planned — no code yet |
 
 ## Foundation
 
@@ -52,7 +53,7 @@ Hardening the Foundation contracts that existed only on paper. No football gamep
 ### Legend applied
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
-- **Planned:** MATCH-01 onward; no code exists for them.
+- **Planned:** MATCH-01 onward, plus MOD-00; no code exists for them.
 - **Implemented:** FND-001…FND-019 (except FND-015, discarded) and CONS-001…CONS-008.
 - **Tested:** 48 tests — boundaries, determinism contract, match isolation, migrations + seed, the full save contract including rollback and discard, headless vertical slice, Godot presentation path, and the exported release build.
 
@@ -110,6 +111,25 @@ Two bugs found by measuring rather than reading, both documented in `ARCHITECTUR
 
 The foundation contracts held: match isolation, the checkpoint boundary and the deterministic apply order all absorbed real football without being reshaped. The only Foundation contract that moved is the one that was explicitly marked provisional — the timestep.
 
+## MOD-00 — mod format
+
+Decided, not built. `ADR-0007` closes the owner decision on what a mod is; no
+code implements it yet.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| MOD-001 | ⬜ | `manifest.json` parsing — `id`, `name`, `version`, `schema_version`, and no other keys |
+| MOD-002 | ⬜ | Ordered application over the base template in `SqliteWorldTemplateBuilder` |
+| MOD-003 | ⬜ | DDL rejection, verified by deliberate violation |
+| MOD-004 | ⬜ | `schema_version` mismatch refused loudly |
+| MOD-005 | ⬜ | `SaveMetadata.ModList` + derived `ContentVersion`, advisory and never blocking |
+
+Ordering lives in two places and neither is the manifest: between mods it is the
+launcher's list position, within a mod it is the numeric filename prefix.
+
+Unscheduled against the sequence below — modding is 🟡 in the 1.0 scope, so this
+does not displace `MATCH-01`.
+
 ## Next canonical sequence
 
 1. `MATCH-01` — first visual 11v11 slice in Godot.
@@ -119,5 +139,7 @@ The foundation contracts held: match isolation, the checkpoint boundary and the 
 5. `CAREER-00` — first complete long-term club career loop.
 
 Before real MATCH performance work, define `PERF-001`: reference hardware, active-world size and maximum acceptable round-advance time. Do not invent FastMatchSimulation before that measurement.
+
+That number is still an open owner decision (`D` in `CLAUDE.md`) and an agent may not choose it.
 
 `ART-SPIKE-001` will separately test dynamic kit rendering at real field-sprite resolution before any UV lookup or palette-mask approach becomes an architectural contract.

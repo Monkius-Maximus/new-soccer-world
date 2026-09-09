@@ -92,7 +92,7 @@ An agent may not invent these. Three are settled; one is open.
 |---|---|---|
 | A | 1.0 target platforms | **Closed** — Windows x86_64 + Linux x86_64 (ADR-0001) |
 | B | .NET and Godot versions | **Closed** — `net10.0`, SDK `10.0.100`/`latestFeature`, Godot 4.7.1 .NET (ADR-0001) |
-| C | Mod format | **Open.** Blocks the launcher/`WorldBuilder` mod pipeline described in `02-revisao-arquitetura.md` §8 and the `ModList` field of `SaveMetadata`. |
+| C | Mod format | **Closed** — data-only mods, launcher-owned ordering, advisory provenance (ADR-0007). Implementation is `MOD-00`, not yet built. |
 | D | Benchmark criterion | **Open.** Blocks `PERF-001`, which in turn blocks any `FastMatchSimulation`. Define the number before measuring. |
 
 ## Commands
