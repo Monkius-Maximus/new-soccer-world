@@ -67,5 +67,10 @@ Or open `game/SoccerDreamGame/project.godot` in the .NET edition of Godot 4.7.1.
 - `scripts` — headless Godot smoke and release-export checks, both gated by CI
 - `tests` — boundary, persistence and determinism tests
 - `docs` — architecture, roadmap and accepted ADRs
+- `docs/context` — the owner's source design documents, preserved verbatim
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+[`CLAUDE.md`](CLAUDE.md) states the authority order between the accepted ADRs, the
+living docs and the source design documents in [`docs/context`](docs/context), and
+records which owner decisions are still open.
