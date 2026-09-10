@@ -37,6 +37,12 @@ jobs:
       - name: Run deterministic headless slice
         run: dotnet run --project tools/SoccerSim.HeadlessRunner/SoccerSim.HeadlessRunner.csproj --configuration Release --no-build -- --template artifacts/world_template.db --seed 123456789
 
+      # Proves the PERF-001 harness still runs. Deliberately NOT a measurement: ADR-0008
+      # fixes the criterion to the reference machine, and these numbers come from a shared
+      # runner. The order-of-magnitude guard is PerformanceGuardTests, in the test step above.
+      - name: Smoke-run the benchmark harness (not a measurement)
+        run: dotnet run --project tools/SoccerSim.Benchmark/SoccerSim.Benchmark.csproj --configuration Release --no-build -- --template artifacts/world_template.db --matches 5 --warmup 2
+
   godot-smoke:
     name: Godot smoke test (headless)
     runs-on: ubuntu-latest

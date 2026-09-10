@@ -103,6 +103,7 @@ dotnet test SoccerDreamGame.sln
 
 dotnet run --project tools/SoccerSim.WorldBuilder  -- --output artifacts/world_template.db
 dotnet run --project tools/SoccerSim.HeadlessRunner -- --template artifacts/world_template.db --seed 123456789
+dotnet run -c Release --project tools/SoccerSim.Benchmark -- --template artifacts/world_template.db --matches 100
 
 scripts/godot-smoke-test.sh  /path/to/Godot_v4.7.1-stable_mono_linux.x86_64
 scripts/godot-export-test.sh /path/to/Godot_v4.7.1-stable_mono_linux.x86_64

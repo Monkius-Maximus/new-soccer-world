@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SoccerSim.Benchmark</RootNamespace>
+    <AssemblyName>SoccerSim.Benchmark</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SoccerSim.Application/SoccerSim.Application.csproj" />
+    <ProjectReference Include="../../src/SoccerSim.Infrastructure/SoccerSim.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

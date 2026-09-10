@@ -158,7 +158,16 @@ Both were found by measuring output over hundreds of matches, not by reading the
 
 No `FastMatchSimulation` exists. ADR-0008 sets the criterion — 100 matches per round in at most 10 seconds single-threaded on the reference machine — and orders the remedies, with a second engine last and requiring an ADR that supersedes it.
 
-A match has been observed at roughly 60 ms, but nothing in the repository measures it: the only `Stopwatch` occurrence is the banned-API string in `DeterminismGuardTests`. Treat that figure as an unverified past observation until `PERF-001` builds the harness.
+A match has been observed at roughly 60 ms. That figure is still an unverified past
+observation: `tools/SoccerSim.Benchmark` now exists to measure it, but it has not yet been
+run on the reference machine, and until it is, no performance claim here is evidence.
+
+The measurement is split in two on purpose. The harness reports and never asserts, because
+the criterion is only meaningful on the machine ADR-0008 names. `PerformanceGuardTests` is
+the CI half, and it guards a ceiling ten times the per-match budget — loose enough that
+runner variance cannot reach it, tight enough that a tenfold regression cannot hide. A
+wall-clock assertion at the real budget would go red from noise, and a randomly red test
+is one the team stops reading.
 
 ## 7. Godot
 

@@ -53,7 +53,7 @@ Hardening the Foundation contracts that existed only on paper. No football gamep
 ### Legend applied
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
-- **Planned:** MATCH-01 onward, plus MOD-00 and PERF-001; no code exists for them.
+- **Planned:** MATCH-01 onward, plus MOD-00; no code exists for them. PERF-001 is half-built: harness and guard ship, the measurement awaits the reference machine.
 - **Implemented:** FND-001…FND-019 (except FND-015, discarded) and CONS-001…CONS-008.
 - **Tested:** 48 tests — boundaries, determinism contract, match isolation, migrations + seed, the full save contract including rollback and discard, headless vertical slice, Godot presentation path, and the exported release build.
 
@@ -132,15 +132,23 @@ does not displace `MATCH-01`.
 
 ## PERF-001 — round-advance measurement
 
-Decided, not built. `ADR-0008` sets the criterion; nothing measures against it
-yet.
+`ADR-0008` sets the criterion. The harness and the CI guard exist; the measurement
+itself needs the reference machine, so it is the owner's to run.
 
 | ID | Status | Deliverable |
 |---|---|---|
-| PERF-001a | ⬜ | Minimal harness — run N matches, report ms/match, print CPU, core count and runtime |
-| PERF-001b | ⬜ | Reference machine specification recorded in ADR-0008 |
-| PERF-001c | ⬜ | First real measurement against the 100-matches-in-10s criterion |
-| PERF-001d | ⬜ | CI regression guard on order of magnitude only, never the absolute number |
+| PERF-001a | 🟢 | `tools/SoccerSim.Benchmark` — runs N matches, reports ms/match, ns/tick and machine identity |
+| PERF-001b | ⬜ | Reference machine specification recorded in ADR-0008 — blocked on a run by the owner |
+| PERF-001c | ⬜ | First real measurement against the 100-matches-in-10s criterion — same block |
+| PERF-001d | 🟢 | `PerformanceGuardTests` — 10x ceiling, immune to runner noise by construction |
+
+The harness reports and never asserts, because the criterion is only meaningful on the
+reference machine. CI smoke-runs it with five matches to prove it still executes, and
+that output is explicitly not a measurement.
+
+.NET exposes no portable API for the CPU model, so the harness prints runtime, OS,
+architecture and logical processor count and says plainly that the model has to be
+recorded by hand. Two platform-specific code paths would have bought one string.
 
 Single thread is the pessimistic bound, not a target: match isolation already
 makes a round parallelise deterministically, and that headroom is excluded from

@@ -8,7 +8,7 @@ Canonical implementation repository for the offline-first football simulation pr
 
 CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 85 tests, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
 
-`MATCH-00` simulates football spatially on a fixed 50 ms timestep: twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. It replays exactly from a seed and returns an ordered event stream that `MATCH-01` will render rather than re-derive. Its speed is not yet a verified number — see ADR-0008.
+`MATCH-00` simulates football spatially on a fixed 50 ms timestep: twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. It replays exactly from a seed and returns an ordered event stream that `MATCH-01` will render rather than re-derive. Its speed is measured by `tools/SoccerSim.Benchmark` against the criterion in ADR-0008; no verified figure has been recorded yet.
 
 Measured over 300 matches between evenly-rated squads: **3.14 goals and 28.3 shots per match**, with neither side structurally favoured. The balance constants are tuned against that observation and recorded next to the numbers that produced them.
 
@@ -39,6 +39,13 @@ dotnet run --project tools/SoccerSim.WorldBuilder -- --output artifacts/world_te
 dotnet run --project tools/SoccerSim.HeadlessRunner -- --template artifacts/world_template.db --seed 123456789
 ```
 
+To measure against the ADR-0008 criterion, run this on the reference machine — not in CI,
+and not on a loaded laptop:
+
+```bash
+dotnet run -c Release --project tools/SoccerSim.Benchmark -- --template artifacts/world_template.db --matches 100
+```
+
 For the Godot smoke test, run it headless the way CI does:
 
 ```bash
@@ -60,6 +67,7 @@ Or open `game/SoccerDreamGame/project.godot` in the .NET edition of Godot 4.7.1.
 - `src/SoccerSim.Infrastructure` — SQLite adapters
 - `tools/SoccerSim.WorldBuilder` — reproducible `world_template.db` builder
 - `tools/SoccerSim.HeadlessRunner` — end-to-end deterministic foundation proof
+- `tools/SoccerSim.Benchmark` — PERF-001 round-advance measurement; reports, never asserts
 - `game/SoccerDreamGame` — Godot .NET presentation smoke test
 - `sql/migrations` — canonical schema evolution
 - `sql/seeds` — canonical foundation seed content
