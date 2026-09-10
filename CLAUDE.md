@@ -86,14 +86,14 @@ intentions. If a tripwire fires, fix the code — do not relax the tripwire.
 
 ## Owner decisions
 
-An agent may not invent these. Three are settled; one is open.
+An agent may not invent these. All four are settled; two await implementation.
 
 | # | Decision | Status |
 |---|---|---|
 | A | 1.0 target platforms | **Closed** — Windows x86_64 + Linux x86_64 (ADR-0001) |
 | B | .NET and Godot versions | **Closed** — `net10.0`, SDK `10.0.100`/`latestFeature`, Godot 4.7.1 .NET (ADR-0001) |
 | C | Mod format | **Closed** — data-only mods, launcher-owned ordering, advisory provenance (ADR-0007). Implementation is `MOD-00`, not yet built. |
-| D | Benchmark criterion | **Open.** Blocks `PERF-001`, which in turn blocks any `FastMatchSimulation`. Define the number before measuring. |
+| D | Benchmark criterion | **Closed** — 100 matches per round in at most 10 s single-threaded on the reference machine, remedies ordered with a second engine last (ADR-0008). Harness is `PERF-001`, not yet built. |
 
 ## Commands
 

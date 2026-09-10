@@ -8,7 +8,7 @@ Canonical implementation repository for the offline-first football simulation pr
 
 CI is green on `ubuntu-latest` and `windows-latest`: 0 warnings, 0 errors, 85 tests, and Godot 4.7.1 .NET both runs the presentation scene and exports release builds for the two 1.0 desktop targets — the exported Linux binary is executed in CI against a real career database.
 
-`MATCH-00` simulates football spatially on a fixed 50 ms timestep: twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. It runs headless in about 60 ms, replays exactly from a seed, and returns an ordered event stream that `MATCH-01` will render rather than re-derive.
+`MATCH-00` simulates football spatially on a fixed 50 ms timestep: twenty-two players and a ball in metre-space on a 105 x 68 pitch, with possession, passing, tackling and shooting resolved from distance and attributes. It replays exactly from a seed and returns an ordered event stream that `MATCH-01` will render rather than re-derive. Its speed is not yet a verified number — see ADR-0008.
 
 Measured over 300 matches between evenly-rated squads: **3.14 goals and 28.3 shots per match**, with neither side structurally favoured. The balance constants are tuned against that observation and recorded next to the numbers that produced them.
 

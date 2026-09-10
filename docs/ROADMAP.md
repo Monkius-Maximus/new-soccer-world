@@ -53,7 +53,7 @@ Hardening the Foundation contracts that existed only on paper. No football gamep
 ### Legend applied
 
 - **Decided:** every ADR in `docs/adr` is Accepted.
-- **Planned:** MATCH-01 onward, plus MOD-00; no code exists for them.
+- **Planned:** MATCH-01 onward, plus MOD-00 and PERF-001; no code exists for them.
 - **Implemented:** FND-001…FND-019 (except FND-015, discarded) and CONS-001…CONS-008.
 - **Tested:** 48 tests — boundaries, determinism contract, match isolation, migrations + seed, the full save contract including rollback and discard, headless vertical slice, Godot presentation path, and the exported release build.
 
@@ -100,9 +100,9 @@ Real football, headless. Chosen over an event-based possession model so that `MA
 | MATCH-008 | 🟢 | Segment-based goal detection (fixes shot tunnelling) |
 | MATCH-009 | 🟢 | Contested fifty-fifty resolution (fixes array-order scoring bias) |
 | MATCH-010 | 🟢 | Balance tuned against 300 measured matches, numbers recorded in `MatchTuning` |
-| MATCH-011 | 🔴 | `FastMatchSimulation` — not built, and not to be built before `PERF-001` |
+| MATCH-011 | 🔴 | `FastMatchSimulation` — not built; gated by ADR-0008, and last in its ordered remedies |
 
-**MATCH-00: 🟢** — 85 tests. Measured over 300 matches between evenly-rated squads: 3.14 goals and 28.3 shots per match, neither side structurally favoured, ~60 ms per match.
+**MATCH-00: 🟢** — 85 tests. Measured over 300 matches between evenly-rated squads: 3.14 goals and 28.3 shots per match, neither side structurally favoured. A match was observed at roughly 60 ms, but no code in the repository measures it — `PERF-001` makes that reproducible (ADR-0008).
 
 Two bugs found by measuring rather than reading, both documented in `ARCHITECTURE.md`:
 
@@ -130,6 +130,22 @@ launcher's list position, within a mod it is the numeric filename prefix.
 Unscheduled against the sequence below — modding is 🟡 in the 1.0 scope, so this
 does not displace `MATCH-01`.
 
+## PERF-001 — round-advance measurement
+
+Decided, not built. `ADR-0008` sets the criterion; nothing measures against it
+yet.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| PERF-001a | ⬜ | Minimal harness — run N matches, report ms/match, print CPU, core count and runtime |
+| PERF-001b | ⬜ | Reference machine specification recorded in ADR-0008 |
+| PERF-001c | ⬜ | First real measurement against the 100-matches-in-10s criterion |
+| PERF-001d | ⬜ | CI regression guard on order of magnitude only, never the absolute number |
+
+Single thread is the pessimistic bound, not a target: match isolation already
+makes a round parallelise deterministically, and that headroom is excluded from
+the criterion on purpose.
+
 ## Next canonical sequence
 
 1. `MATCH-01` — first visual 11v11 slice in Godot.
@@ -138,8 +154,6 @@ does not displace `MATCH-01`.
 4. `CLUB-00` — persistent club/squad systems.
 5. `CAREER-00` — first complete long-term club career loop.
 
-Before real MATCH performance work, define `PERF-001`: reference hardware, active-world size and maximum acceptable round-advance time. Do not invent FastMatchSimulation before that measurement.
-
-That number is still an open owner decision (`D` in `CLAUDE.md`) and an agent may not choose it.
+`PERF-001` is now defined by ADR-0008. `FastMatchSimulation` stays 🔴 and may only be introduced by an ADR that supersedes ADR-0008 and states why reducing detailed competitions and optimising the existing engine were insufficient.
 
 `ART-SPIKE-001` will separately test dynamic kit rendering at real field-sprite resolution before any UV lookup or palette-mask approach becomes an architectural contract.

@@ -156,7 +156,9 @@ Both were found by measuring output over hundreds of matches, not by reading the
 
 `MatchTuning` holds every constant the balance depends on, with the measured output recorded beside it: 3.14 goals and 28.3 shots per match across 300 matches between evenly-rated squads. Real top-flight football sits near 2.7 goals and 25 shots. The numbers are tuned against observation, not asserted, and they are not claimed to be final.
 
-No `FastMatchSimulation` exists. A faster path may only be introduced after `PERF-001` defines reference hardware and an acceptable round-advance time; a match currently takes about 60 ms.
+No `FastMatchSimulation` exists. ADR-0008 sets the criterion — 100 matches per round in at most 10 seconds single-threaded on the reference machine — and orders the remedies, with a second engine last and requiring an ADR that supersedes it.
+
+A match has been observed at roughly 60 ms, but nothing in the repository measures it: the only `Stopwatch` occurrence is the banned-API string in `DeterminismGuardTests`. Treat that figure as an unverified past observation until `PERF-001` builds the harness.
 
 ## 7. Godot
 
