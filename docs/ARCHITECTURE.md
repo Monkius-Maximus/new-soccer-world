@@ -188,7 +188,44 @@ Two things about this are easy to get wrong and are worth writing down:
 
 `export_presets.cfg` is tracked rather than gitignored, because CI needs the export to be reproducible. Keep its paths relative and never put signing credentials in it.
 
-## 8. Explicitly deferred
+## 8. Mods (MOD-00)
+
+A mod is a directory holding `manifest.json` and numerically prefixed `.sql` scripts,
+applied over the seeded base by `SqliteWorldTemplateBuilder`. ADR-0007 decides the format;
+this is how it is enforced.
+
+**Ordering has two levels and neither is a manifest field.** Between mods it is the
+caller's list position — the launcher's authority. Within a mod it is the numeric filename
+prefix, the convention `sql/migrations` already uses. A script without such a prefix is
+refused rather than sorted somewhere nobody chose, and there is no `load_order` key to
+override either level.
+
+**Data-only is enforced by asking SQLite, not by reading the script.** After a mod runs,
+the builder compares a structural fingerprint — `sqlite_master` plus the `schema_migrations`
+rows — against the one taken before any mod ran. Scanning the SQL for words like `CREATE`
+would both over-reject (a string literal or comment containing `ALTER TABLE` is not DDL)
+and under-reject (DDL need not spell itself that way). The fingerprint is read inside the
+mod's own transaction, so the check sees exactly what that mod did and nothing commits when
+it did too much.
+
+`schema_migrations` is fingerprinted alongside the schema for a reason worth stating: a mod
+could insert a row there and make the template misreport its schema version without running
+a single DDL statement. `SchemaVersions.Expected` is checked against `MAX(version)` in that
+table, and the whole point of data-only mods is that the constant stays true for every
+template this build produces.
+
+**A mod is one transaction.** Its scripts either all land or none do; a half-applied mod is
+worse than a refused one.
+
+**Data-only is not schema-independent.** A mod inserting into `player` depends on that
+table's shape, so each manifest declares the `schema_version` it targets and a mismatch is
+refused at load time — before the database is touched at all.
+
+What is **not** built: provenance. `SaveMetadata` carries no `ModList`, and `ContentVersion`
+is still a free string nothing derives, so a career does not yet record which mods produced
+its template. That is `MOD-005`.
+
+## 9. Explicitly deferred
 
 The following are not Foundation contracts:
 

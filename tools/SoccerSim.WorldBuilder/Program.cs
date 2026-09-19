@@ -8,9 +8,24 @@ var output = options.TryGetValue("output", out var requestedOutput)
 
 var migrations = Path.Combine(repoRoot, "sql", "migrations");
 var seeds = Path.Combine(repoRoot, "sql", "seeds");
-new SqliteWorldTemplateBuilder().Build(migrations, seeds, output);
+
+// The launcher owns mod order, and on this CLI that is the order they are listed in
+// (ADR-0007). There is no ordering field in a manifest to override it.
+var mods = ParseMods(options.GetValueOrDefault("mods", string.Empty));
+
+new SqliteWorldTemplateBuilder().Build(migrations, seeds, mods, output);
 Console.WriteLine($"Generated world template: {output}");
+if (mods.Count > 0)
+{
+    Console.WriteLine($"Applied {mods.Count} mod(s), in order: {string.Join(" -> ", mods.Select(Path.GetFileName))}");
+}
 return 0;
+
+static IReadOnlyList<string> ParseMods(string value) =>
+    value
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(Path.GetFullPath)
+        .ToArray();
 
 static Dictionary<string, string> ParseArgs(string[] values)
 {

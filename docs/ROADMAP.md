@@ -113,15 +113,15 @@ The foundation contracts held: match isolation, the checkpoint boundary and the 
 
 ## MOD-00 — mod format
 
-Decided, not built. `ADR-0007` closes the owner decision on what a mod is; no
-code implements it yet.
+`ADR-0007` closes the owner decision on what a mod is. The pipeline is built and
+guarded; provenance (`MOD-005`) is not, so nothing records which mods made a template.
 
 | ID | Status | Deliverable |
 |---|---|---|
-| MOD-001 | ⬜ | `manifest.json` parsing — `id`, `name`, `version`, `schema_version`, and no other keys |
-| MOD-002 | ⬜ | Ordered application over the base template in `SqliteWorldTemplateBuilder` |
-| MOD-003 | ⬜ | DDL rejection, verified by deliberate violation |
-| MOD-004 | ⬜ | `schema_version` mismatch refused loudly |
+| MOD-001 | 🟢 | `manifest.json` parsing — four keys, unknown ones rejected by the serializer |
+| MOD-002 | 🟢 | Ordered application over the base template in `SqliteWorldTemplateBuilder` |
+| MOD-003 | 🟢 | DDL rejection by structural fingerprint, verified by deliberate violation |
+| MOD-004 | 🟢 | `schema_version` mismatch refused loudly |
 | MOD-005 | ⬜ | `SaveMetadata.ModList` + derived `ContentVersion`, advisory and never blocking |
 
 Ordering lives in two places and neither is the manifest: between mods it is the

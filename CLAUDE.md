@@ -102,6 +102,7 @@ dotnet build SoccerDreamGame.sln
 dotnet test SoccerDreamGame.sln
 
 dotnet run --project tools/SoccerSim.WorldBuilder  -- --output artifacts/world_template.db
+dotnet run --project tools/SoccerSim.WorldBuilder  -- --output artifacts/world_template.db --mods mod-a,mod-b
 dotnet run --project tools/SoccerSim.HeadlessRunner -- --template artifacts/world_template.db --seed 123456789
 dotnet run -c Release --project tools/SoccerSim.Benchmark -- --template artifacts/world_template.db --matches 100
 

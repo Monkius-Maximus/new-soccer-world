@@ -29,6 +29,7 @@ public sealed class HeadlessVerticalSliceTests : IDisposable
         new SqliteWorldTemplateBuilder().Build(
             Path.Combine(root, "sql", "migrations"),
             Path.Combine(root, "sql", "seeds"),
+            [],
             _template);
     }
 

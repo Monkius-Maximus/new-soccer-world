@@ -36,6 +36,8 @@ dotnet restore SoccerDreamGame.sln
 dotnet build SoccerDreamGame.sln
 
 dotnet run --project tools/SoccerSim.WorldBuilder -- --output artifacts/world_template.db
+# With mods, applied in the order listed:
+# dotnet run --project tools/SoccerSim.WorldBuilder -- --output artifacts/world_template.db --mods path/to/mod-a,path/to/mod-b
 dotnet run --project tools/SoccerSim.HeadlessRunner -- --template artifacts/world_template.db --seed 123456789
 ```
 

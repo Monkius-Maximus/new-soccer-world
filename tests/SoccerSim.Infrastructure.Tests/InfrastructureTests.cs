@@ -14,6 +14,7 @@ public sealed class InfrastructureTests
             new SqliteWorldTemplateBuilder().Build(
                 Path.Combine(root, "sql", "migrations"),
                 Path.Combine(root, "sql", "seeds"),
+                [],
                 temp);
 
             var world = new SqliteWorldRepository().Load(temp);
@@ -42,6 +43,7 @@ public sealed class InfrastructureTests
             new SqliteWorldTemplateBuilder().Build(
                 Path.Combine(root, "sql", "migrations"),
                 Path.Combine(root, "sql", "seeds"),
+                [],
                 template);
 
             var store = new SqliteCareerStore();
