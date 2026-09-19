@@ -6,12 +6,16 @@ using SoccerSim.Infrastructure.Sqlite;
 
 // PERF-001 — the measurement ADR-0008 asks for.
 //
-// It reports and never asserts. Whether the criterion is met — 100 matches per round
-// within 10 seconds on one thread, on the reference machine — is judged by a person
-// reading this output. A wall-clock assertion belongs nowhere near a shared CI runner:
-// it fails from noise, and a test that fails randomly is one people learn to ignore.
-// CI guards the order of magnitude instead, in
-// tests/SoccerSim.Core.Tests/PerformanceGuardTests.cs.
+// Whether the criterion is met — 100 matches per round within 10 seconds on one thread,
+// on the reference machine — is judged by a person reading this output. The tool never
+// decides that for itself.
+//
+// --max-ms-per-match is the separate thing ADR-0008 asks CI for: an order-of-magnitude
+// regression guard, not the criterion. It lives here rather than in a unit test because
+// `dotnet test` runs the test assemblies in parallel, so a wall-clock measurement taken
+// there competes with a disk-heavy suite for the runner's two cores and reads an order of
+// magnitude slow. This step runs alone, which is the only condition under which the
+// number means anything.
 //
 // Matches run sequentially on purpose. Match isolation already makes a round
 // parallelisable and deterministic, but ADR-0008 fixes the criterion to a single thread
@@ -28,6 +32,9 @@ var saves = Path.GetFullPath(options.GetValueOrDefault("saves", Path.Combine(rep
 var matches = int.Parse(options.GetValueOrDefault("matches", "100"), CultureInfo.InvariantCulture);
 var warmup = int.Parse(options.GetValueOrDefault("warmup", "5"), CultureInfo.InvariantCulture);
 var baseSeed = ulong.Parse(options.GetValueOrDefault("seed", "500000"), CultureInfo.InvariantCulture);
+var ceilingMsPerMatch = options.TryGetValue("max-ms-per-match", out var requestedCeiling)
+    ? double.Parse(requestedCeiling, CultureInfo.InvariantCulture)
+    : (double?)null;
 
 if (matches < 1)
 {
@@ -107,6 +114,16 @@ Console.WriteLine($"Process architecture   {RuntimeInformation.ProcessArchitectu
 Console.WriteLine($"Logical processors     {Environment.ProcessorCount}");
 Console.WriteLine("CPU model              not available: .NET exposes no portable API. Record it by hand in ADR-0008.");
 Console.WriteLine("------------------------------------------");
+
+if (ceilingMsPerMatch is { } ceiling && msPerMatch > ceiling)
+{
+    Console.Error.WriteLine(
+        $"Regression guard: {msPerMatch:F2} ms per match is over the {ceiling:F0} ms ceiling. " +
+        "This ceiling is ten times the per-match budget in ADR-0008, so it is not runner " +
+        "variance. Measure on the reference machine before changing it.");
+    return 12;
+}
+
 return 0;
 
 static Dictionary<string, string> ParseArgs(string[] values)

@@ -162,12 +162,19 @@ A match has been observed at roughly 60 ms. That figure is still an unverified p
 observation: `tools/SoccerSim.Benchmark` now exists to measure it, but it has not yet been
 run on the reference machine, and until it is, no performance claim here is evidence.
 
-The measurement is split in two on purpose. The harness reports and never asserts, because
-the criterion is only meaningful on the machine ADR-0008 names. `PerformanceGuardTests` is
-the CI half, and it guards a ceiling ten times the per-match budget — loose enough that
-runner variance cannot reach it, tight enough that a tenfold regression cannot hide. A
-wall-clock assertion at the real budget would go red from noise, and a randomly red test
-is one the team stops reading.
+The harness never decides whether the criterion is met; that judgement belongs to a person
+reading its output on the machine ADR-0008 names. What CI adds is the separate
+order-of-magnitude guard: `--max-ms-per-match`, set to ten times the per-match budget.
+
+That guard lives in the benchmark's own CI step, and the reason is a lesson worth keeping.
+It was first written as a unit test, and it failed on Windows at 1979 ms per match against
+a 1000 ms ceiling — while the same harness on the same class of runner measured 98 ms. The
+cause was not noise: `dotnet test` runs the test assemblies in parallel, so the timing ran
+concurrently with a disk-heavy SQLite suite on a two-core runner. A wall-clock measurement
+taken inside a parallel test run measures the scheduler, not the simulation. Raising the
+ceiling until it passed would have produced a guard that no longer guards anything, so the
+measurement moved to a step that runs alone — the only condition under which the ten-times
+headroom actually holds.
 
 ## 7. Godot
 

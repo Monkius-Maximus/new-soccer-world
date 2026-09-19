@@ -143,11 +143,14 @@ itself needs the reference machine, so it is the owner's to run.
 | PERF-001a | 🟢 | `tools/SoccerSim.Benchmark` — runs N matches, reports ms/match, ns/tick and machine identity |
 | PERF-001b | ⬜ | Reference machine specification recorded in ADR-0008 — blocked on a run by the owner |
 | PERF-001c | ⬜ | First real measurement against the 100-matches-in-10s criterion — same block |
-| PERF-001d | 🟢 | `PerformanceGuardTests` — 10x ceiling, immune to runner noise by construction |
+| PERF-001d | 🟢 | `--max-ms-per-match` in the benchmark's own CI step — 10x ceiling, measured where nothing competes |
 
-The harness reports and never asserts, because the criterion is only meaningful on the
-reference machine. CI smoke-runs it with five matches to prove it still executes, and
-that output is explicitly not a measurement.
+The harness never judges the criterion itself — that is read by a person on the reference
+machine. CI runs it with ten matches and applies the order-of-magnitude guard, in a step of
+its own: the guard began as a unit test and failed on Windows at 1979 ms against a 1000 ms
+ceiling, because `dotnet test` runs assemblies in parallel and the timing was competing
+with a disk-heavy suite for two cores. Wall-clock inside a parallel test run measures the
+scheduler.
 
 .NET exposes no portable API for the CPU model, so the harness prints runtime, OS,
 architecture and logical processor count and says plainly that the model has to be
