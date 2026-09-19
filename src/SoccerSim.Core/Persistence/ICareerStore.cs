@@ -10,7 +10,6 @@ public interface ICareerStore
         string saveId,
         ulong careerSeed,
         string gameVersion,
-        string contentVersion,
         DateTimeOffset timestamp);
 
     CareerSave OpenCareer(string databasePath);

@@ -22,7 +22,6 @@ var career = application.CreateCareer(
     saveId,
     careerSeed: 424242UL,
     gameVersion: "0.0.1-foundation",
-    contentVersion: "foundation-recife-1",
     timestamp: DateTimeOffset.UtcNow);
 
 var query = new ClubRosterQueryService();
@@ -55,6 +54,7 @@ Console.WriteLine($"FixedTimeStepMs     = {SoccerSim.Core.Simulation.SimulationS
 Console.WriteLine($"Ticks               = {first.Ticks}");
 Console.WriteLine($"SchemaVersion       = {career.Save.Metadata.SchemaVersion}");
 Console.WriteLine($"ContentVersion      = {career.Save.Metadata.ContentVersion}");
+Console.WriteLine($"ModList             = {(career.Save.Metadata.ModList.Count == 0 ? "(none)" : string.Join(", ", career.Save.Metadata.ModList.Select(mod => $"{mod.Id}@{mod.Version}")))}");
 Console.WriteLine($"GameVersion         = {career.Save.Metadata.GameVersion}");
 Console.WriteLine($"CareerSeed          = {career.Save.Metadata.CareerSeed}");
 Console.WriteLine($"Runtime             = {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");

@@ -37,7 +37,7 @@ public sealed class PlayerPersistenceTests : IDisposable
     {
         var store = new SqliteCareerStore();
         var save = store.CreateCareer(
-            _template, _workspace, "plyr", 1UL, "0.0.1", "foundation-recife-1", DateTimeOffset.UnixEpoch);
+            _template, _workspace, "plyr", 1UL, "0.0.1", DateTimeOffset.UnixEpoch);
 
         Assert.Equal(SchemaVersions.Expected, save.Metadata.SchemaVersion);
     }
@@ -116,7 +116,7 @@ public sealed class PlayerPersistenceTests : IDisposable
     {
         var store = new SqliteCareerStore();
         var save = store.CreateCareer(
-            _template, _workspace, "stale", 1UL, "0.0.1", "foundation-recife-1", DateTimeOffset.UnixEpoch);
+            _template, _workspace, "stale", 1UL, "0.0.1", DateTimeOffset.UnixEpoch);
 
         // Simulate a save produced by a build one migration behind.
         ExecuteOn(save.DatabasePath,

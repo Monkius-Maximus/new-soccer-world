@@ -113,8 +113,11 @@ The foundation contracts held: match isolation, the checkpoint boundary and the 
 
 ## MOD-00 — mod format
 
-`ADR-0007` closes the owner decision on what a mod is. The pipeline is built and
-guarded; provenance (`MOD-005`) is not, so nothing records which mods made a template.
+`ADR-0007` closes the owner decision on what a mod is, and every clause it states is now
+enforced by something that fails when broken.
+
+**MOD-00: 🟢** — migration `0005` adds `template_mod`, and `SchemaVersions.Expected` moves
+to 5.
 
 | ID | Status | Deliverable |
 |---|---|---|
@@ -122,7 +125,7 @@ guarded; provenance (`MOD-005`) is not, so nothing records which mods made a tem
 | MOD-002 | 🟢 | Ordered application over the base template in `SqliteWorldTemplateBuilder` |
 | MOD-003 | 🟢 | DDL rejection by structural fingerprint, verified by deliberate violation |
 | MOD-004 | 🟢 | `schema_version` mismatch refused loudly |
-| MOD-005 | ⬜ | `SaveMetadata.ModList` + derived `ContentVersion`, advisory and never blocking |
+| MOD-005 | 🟢 | `SaveMetadata.ModList` + derived `ContentVersion`, advisory and never blocking |
 
 Ordering lives in two places and neither is the manifest: between mods it is the
 launcher's list position, within a mod it is the numeric filename prefix.

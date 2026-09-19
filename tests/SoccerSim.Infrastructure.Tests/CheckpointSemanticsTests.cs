@@ -37,7 +37,7 @@ public sealed class CheckpointSemanticsTests : IDisposable
     public void Dispose() => Directory.Delete(_workspace, recursive: true);
 
     private ActiveCareer StartCareer(string saveId) =>
-        _application.CreateCareer(_template, _workspace, saveId, 7UL, "0.0.1", "foundation-recife-1", Start);
+        _application.CreateCareer(_template, _workspace, saveId, 7UL, "0.0.1", Start);
 
     private IReadOnlyList<Core.Domain.AppliedSimulationRun> PlayAndApply(ActiveCareer career, ulong seed)
     {

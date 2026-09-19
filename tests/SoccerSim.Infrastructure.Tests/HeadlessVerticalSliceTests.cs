@@ -42,7 +42,6 @@ public sealed class HeadlessVerticalSliceTests : IDisposable
             saveId,
             careerSeed: 424242UL,
             gameVersion: "0.0.1-foundation",
-            contentVersion: "foundation-recife-1",
             timestamp: new DateTimeOffset(2026, 8, 8, 12, 0, 0, TimeSpan.Zero));
 
     [Fact]

@@ -169,6 +169,94 @@ public sealed class ModPipelineTests : IDisposable
         Assert.Equal(SchemaVersions.Expected, ReadSchemaVersion());
     }
 
+    [Fact]
+    public void A_template_records_the_mods_that_produced_it_in_order()
+    {
+        var alpha = WriteMod("alpha", "010_a.sql", "UPDATE club SET name = 'A' WHERE id = 1;");
+        var beta = WriteMod("beta", "010_b.sql", "UPDATE club SET name = 'B' WHERE id = 1;");
+
+        Build([alpha, beta]);
+        var metadata = CreateCareer("ordered").Metadata;
+
+        Assert.Equal(
+            new[] { new ModReference("alpha", "1.0.0"), new ModReference("beta", "1.0.0") },
+            metadata.ModList);
+    }
+
+    [Fact]
+    public void Content_version_is_derived_from_the_mod_list_and_is_stable()
+    {
+        var alpha = WriteMod("alpha", "010_a.sql", "UPDATE club SET name = 'A' WHERE id = 1;");
+        var beta = WriteMod("beta", "010_b.sql", "UPDATE club SET name = 'B' WHERE id = 1;");
+
+        Build([alpha, beta]);
+        var forward = CreateCareer("forward").Metadata.ContentVersion;
+
+        // Same value from the same inputs, computed independently: a per-process hash would
+        // not survive this, which is why ADR-0008 rules out string.GetHashCode.
+        Assert.Equal(
+            ContentVersion.From([new ModReference("alpha", "1.0.0"), new ModReference("beta", "1.0.0")]),
+            forward);
+
+        Build([beta, alpha]);
+        var reversed = CreateCareer("reversed").Metadata.ContentVersion;
+
+        // Order is part of the identity: the same mods applied the other way round are a
+        // different world, and provenance has to say so.
+        Assert.NotEqual(forward, reversed);
+    }
+
+    [Fact]
+    public void An_unmodded_template_reports_no_mods_and_still_has_a_content_version()
+    {
+        Build([]);
+        var metadata = CreateCareer("plain").Metadata;
+
+        Assert.Empty(metadata.ModList);
+        Assert.Equal(ContentVersion.From([]), metadata.ContentVersion);
+        Assert.NotEmpty(metadata.ContentVersion);
+    }
+
+    [Fact]
+    public void A_mod_that_forges_its_own_provenance_row_is_rejected()
+    {
+        // No DDL, and the row is even plausible. It would make a career report a mod that
+        // never ran, which is the provenance failing in the one direction that matters.
+        var mod = WriteMod(
+            "forger",
+            "010_forge.sql",
+            "INSERT INTO template_mod (ordinal, mod_id, mod_version) VALUES (99, 'ghost', '9.9.9');");
+
+        var error = Assert.Throws<InvalidDataException>(() => Build([mod]));
+        Assert.Contains("altered the schema", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_career_still_opens_when_the_mods_that_made_it_are_gone()
+    {
+        // The claim ADR-0007 makes about provenance: advisory, never blocking. A career is a
+        // copy of its template (ADR-0003), so deleting every mod it came from must change
+        // nothing about opening it.
+        var mod = WriteMod("disposable", "010_a.sql", "UPDATE club SET name = 'Modded' WHERE id = 1;");
+        Build([mod]);
+        var created = CreateCareer("survivor");
+
+        Directory.Delete(mod, recursive: true);
+
+        var reopened = new SqliteCareerStore().OpenCareer(created.DatabasePath);
+        Assert.Equal("disposable", Assert.Single(reopened.Metadata.ModList).Id);
+        Assert.Equal(created.Metadata.ContentVersion, reopened.Metadata.ContentVersion);
+    }
+
+    private CareerSave CreateCareer(string saveId) =>
+        new SqliteCareerStore().CreateCareer(
+            Template,
+            Path.Combine(_workspace, "saves"),
+            saveId,
+            careerSeed: 1UL,
+            gameVersion: "0.0.1-test",
+            timestamp: DateTimeOffset.UnixEpoch);
+
     private void Build(IReadOnlyList<string> mods) =>
         new SqliteWorldTemplateBuilder().Build(
             Path.Combine(FindRepoRoot(), "sql", "migrations"),

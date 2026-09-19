@@ -98,3 +98,10 @@ DDL rejection and the ordering rule are contracts, so each needs a test that
 fails when the contract is broken — verified by deliberate violation, the way
 the Foundation tripwires were. Until `MOD-00` lands, this ADR is a decision, not
 a shipped capability, and nothing in the roadmap may be marked 🟢 for it.
+
+**Shipped.** `MOD-00` implements this ADR in full; see `docs/ARCHITECTURE.md` §8 for how
+each clause is enforced. One thing the decision did not anticipate: DDL is not the only way
+to break it. A mod can corrupt `schema_migrations` or forge a `template_mod` row with plain
+`INSERT` statements, so the builder fingerprints those two tables alongside the schema
+rather than guarding DDL alone. That strengthens the decision rather than changing it, so
+it is recorded here instead of in a superseding ADR.

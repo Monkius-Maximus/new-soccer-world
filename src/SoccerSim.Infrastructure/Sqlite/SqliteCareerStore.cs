@@ -25,7 +25,6 @@ public sealed class SqliteCareerStore : ICareerStore
         string saveId,
         ulong careerSeed,
         string gameVersion,
-        string contentVersion,
         DateTimeOffset timestamp)
     {
         ValidateSaveId(saveId);
@@ -53,14 +52,19 @@ public sealed class SqliteCareerStore : ICareerStore
                 $"{SchemaVersions.Expected}. Rebuild it with SoccerSim.WorldBuilder.");
         }
 
+        // Provenance travels with the file copy: the builder wrote template_mod, and the
+        // career inherits it. ContentVersion is derived from that list rather than supplied,
+        // so it cannot disagree with the mods actually present.
+        var modList = ReadModList(databasePath);
         var metadata = new SaveMetadata(
             saveId,
             gameVersion,
             schemaVersion,
-            contentVersion,
+            ContentVersion.From(modList),
             timestamp,
             timestamp,
-            careerSeed);
+            careerSeed,
+            modList);
 
         WriteMetadata(databasePath, metadata, insert: true);
         return new CareerSave(databasePath, metadata);
@@ -180,27 +184,67 @@ public sealed class SqliteCareerStore : ICareerStore
 
     private static SaveMetadata ReadMetadata(string databasePath)
     {
-        using var connection = Open(databasePath);
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT save_id, game_version, schema_version, content_version, created_at, last_played_at, career_seed
-            FROM save_metadata
-            LIMIT 1;
-            """;
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
+        string saveId, gameVersion, contentVersion, createdAt, lastPlayedAt, careerSeed;
+        int schemaVersion;
+
+        using (var connection = Open(databasePath))
+        using (var command = connection.CreateCommand())
         {
-            throw new InvalidDataException("Career database has no SaveMetadata row.");
+            command.CommandText = """
+                SELECT save_id, game_version, schema_version, content_version, created_at, last_played_at, career_seed
+                FROM save_metadata
+                LIMIT 1;
+                """;
+            using var reader = command.ExecuteReader();
+            if (!reader.Read())
+            {
+                throw new InvalidDataException("Career database has no SaveMetadata row.");
+            }
+
+            saveId = reader.GetString(0);
+            gameVersion = reader.GetString(1);
+            schemaVersion = reader.GetInt32(2);
+            contentVersion = reader.GetString(3);
+            createdAt = reader.GetString(4);
+            lastPlayedAt = reader.GetString(5);
+            careerSeed = reader.GetString(6);
         }
 
+        // ContentVersion is read back as stored rather than re-derived: it records what the
+        // build wrote, and a value that silently recomputed itself would hide the very drift
+        // it exists to reveal.
         return new SaveMetadata(
-            reader.GetString(0),
-            reader.GetString(1),
-            reader.GetInt32(2),
-            reader.GetString(3),
-            DateTimeOffset.Parse(reader.GetString(4), CultureInfo.InvariantCulture),
-            DateTimeOffset.Parse(reader.GetString(5), CultureInfo.InvariantCulture),
-            ulong.Parse(reader.GetString(6), CultureInfo.InvariantCulture));
+            saveId,
+            gameVersion,
+            schemaVersion,
+            contentVersion,
+            DateTimeOffset.Parse(createdAt, CultureInfo.InvariantCulture),
+            DateTimeOffset.Parse(lastPlayedAt, CultureInfo.InvariantCulture),
+            ulong.Parse(careerSeed, CultureInfo.InvariantCulture),
+            ReadModList(databasePath));
+    }
+
+    /// <summary>
+    /// The mods that produced the template this database came from, in application order.
+    /// <para>
+    /// A mismatch against the currently enabled mods is something a launcher may warn about
+    /// and nothing may refuse. ADR-0003 makes a career self-contained once copied, so
+    /// blocking here would contradict the model this whole save architecture rests on.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<ModReference> ReadModList(string databasePath)
+    {
+        using var connection = Open(databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT mod_id, mod_version FROM template_mod ORDER BY ordinal;";
+        using var reader = command.ExecuteReader();
+
+        var mods = new List<ModReference>();
+        while (reader.Read())
+        {
+            mods.Add(new ModReference(reader.GetString(0), reader.GetString(1)));
+        }
+        return mods;
     }
 
     private static void WriteMetadata(string databasePath, SaveMetadata metadata, bool insert)

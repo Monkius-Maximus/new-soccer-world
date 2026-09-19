@@ -221,9 +221,20 @@ worse than a refused one.
 table's shape, so each manifest declares the `schema_version` it targets and a mismatch is
 refused at load time — before the database is touched at all.
 
-What is **not** built: provenance. `SaveMetadata` carries no `ModList`, and `ContentVersion`
-is still a free string nothing derives, so a career does not yet record which mods produced
-its template. That is `MOD-005`.
+**Provenance is advisory, and the tests hold it to that.** The builder writes
+`template_mod` — the ordered id and version of every mod that ran — and a career inherits
+that table through the file copy, because a career *is* a copy of its template (ADR-0003).
+`SaveMetadata.ModList` is read from it and `ContentVersion` is derived from it rather than
+supplied by the caller, so a career cannot claim content it did not come from. The
+derivation is SHA-256 over the canonical ordered `(id, version)` pairs: `string.GetHashCode`
+is randomized per process in .NET, so the same mod set would otherwise produce a different
+value on every run and the field would be worthless for comparison.
+
+Nothing may refuse a career over this. A test deletes every mod a template was built from
+and reopens the career to prove it still works, because blocking would contradict the model
+the whole save architecture rests on. `template_mod` is fingerprinted alongside the schema
+for the same reason `schema_migrations` is: a mod inserting its own row there would forge
+the provenance meant to describe it, with no DDL involved.
 
 ## 9. Explicitly deferred
 

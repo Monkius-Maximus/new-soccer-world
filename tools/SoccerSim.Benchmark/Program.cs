@@ -57,7 +57,6 @@ var career = application.CreateCareer(
     $"perf-001-{Guid.NewGuid():N}",
     careerSeed: 424242UL,
     gameVersion: "0.0.1-perf",
-    contentVersion: "foundation-recife-1",
     timestamp: DateTimeOffset.UtcNow);
 
 var rosters = new ClubRosterQueryService().GetClubRosters(career.World);

@@ -7,4 +7,5 @@ public sealed record SaveMetadata(
     string ContentVersion,
     DateTimeOffset CreatedAt,
     DateTimeOffset LastPlayedAt,
-    ulong CareerSeed);
+    ulong CareerSeed,
+    IReadOnlyList<ModReference> ModList);

@@ -66,6 +66,36 @@ public sealed class SqliteWorldTemplateBuilder
         }
 
         ApplyMods(connection, mods);
+        WriteProvenance(connection, mods);
+    }
+
+    /// <summary>
+    /// Records which mods produced this template, in application order, so a career copied
+    /// from it can say where its world came from (ADR-0007). Written after the mod phase,
+    /// which is also why <c>template_mod</c> is one of the tables a mod may not touch: a mod
+    /// writing its own row here would forge the provenance meant to describe it.
+    /// </summary>
+    private static void WriteProvenance(SqliteConnection connection, IReadOnlyList<ModPackage> mods)
+    {
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "INSERT INTO template_mod (ordinal, mod_id, mod_version) VALUES ($ordinal, $id, $version);";
+
+        var ordinal = command.Parameters.Add("$ordinal", SqliteType.Integer);
+        var id = command.Parameters.Add("$id", SqliteType.Text);
+        var version = command.Parameters.Add("$version", SqliteType.Text);
+
+        for (var index = 0; index < mods.Count; index++)
+        {
+            ordinal.Value = index;
+            id.Value = mods[index].Id;
+            version.Value = mods[index].Version;
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
     }
 
     /// <summary>
@@ -106,10 +136,15 @@ public sealed class SqliteWorldTemplateBuilder
     }
 
     /// <summary>
-    /// Everything a mod must leave alone: the shape of the database, and the migration
-    /// history that <c>SchemaVersions</c> is checked against. A mod inserting a row into
-    /// <c>schema_migrations</c> would misreport the template's version without running a
-    /// single DDL statement, so both are fingerprinted together.
+    /// Everything a mod must leave alone: the shape of the database, plus the two tables
+    /// that describe the template rather than its content.
+    /// <para>
+    /// Neither extra table needs DDL to be corrupted. A row inserted into
+    /// <c>schema_migrations</c> would misreport the template's version, which is read as
+    /// <c>MAX(version)</c> from exactly there; a row inserted into <c>template_mod</c> would
+    /// forge the provenance a career reports. Both are fingerprinted with the schema so a
+    /// mod cannot reach the contract through the front door.
+    /// </para>
     /// </summary>
     private static string ReadStructuralFingerprint(
         SqliteConnection connection,
@@ -132,22 +167,41 @@ public sealed class SqliteWorldTemplateBuilder
             }
         }
 
-        fingerprint.Append("schema_migrations\u001e");
+        AppendRows(
+            connection,
+            transaction,
+            fingerprint,
+            "SELECT version, name FROM schema_migrations ORDER BY version;");
 
-        using (var migrations = connection.CreateCommand())
-        {
-            migrations.Transaction = transaction;
-            migrations.CommandText = "SELECT version, name FROM schema_migrations ORDER BY version;";
-            using var reader = migrations.ExecuteReader();
-            while (reader.Read())
-            {
-                fingerprint
-                    .Append(reader.GetInt32(0).ToString(CultureInfo.InvariantCulture)).Append('\u001f')
-                    .Append(reader.GetString(1)).Append('\u001e');
-            }
-        }
+        AppendRows(
+            connection,
+            transaction,
+            fingerprint,
+            "SELECT ordinal, mod_id, mod_version FROM template_mod ORDER BY ordinal;");
 
         return fingerprint.ToString();
+    }
+
+    private static void AppendRows(
+        SqliteConnection connection,
+        SqliteTransaction? transaction,
+        StringBuilder fingerprint,
+        string sql)
+    {
+        fingerprint.Append(sql).Append('\u001e');
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            for (var column = 0; column < reader.FieldCount; column++)
+            {
+                fingerprint.Append(reader.GetValue(column)).Append('\u001f');
+            }
+            fingerprint.Append('\u001e');
+        }
     }
 
     /// <summary>

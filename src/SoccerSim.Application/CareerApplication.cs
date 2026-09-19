@@ -20,16 +20,17 @@ public sealed class CareerApplication
         string saveId,
         ulong careerSeed,
         string gameVersion,
-        string contentVersion,
         DateTimeOffset timestamp)
     {
+        // ContentVersion is not a caller's choice: it is derived from the mods recorded in
+        // the template being copied (ADR-0007), so a career cannot claim content it did not
+        // come from.
         var save = _careerStore.CreateCareer(
             templateDatabasePath,
             savesRoot,
             saveId,
             careerSeed,
             gameVersion,
-            contentVersion,
             timestamp);
         var world = _careerStore.LoadWorld(save.DatabasePath);
         return new ActiveCareer(save, world);
