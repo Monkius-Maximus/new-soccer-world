@@ -121,8 +121,13 @@ engine, no replay format, no second set of football rules.
 | MATCH-012 | 🟢 | `Begin` / `Advance` / `Result` — and `Run` rewritten in terms of them |
 | MATCH-013 | 🟢 | `MatchFrame` — ball, 22 players, clock, score; copied out, never a view |
 | MATCH-014 | 🟢 | `CareerApplication.BeginMatch`, sharing one match-context builder with `RunMatch` |
-| MATCH-015 | ⬜ | Godot scene drawing the frame at the fixed timestep |
-| MATCH-016 | ⬜ | Headless assertion that the scene advanced a real match |
+| MATCH-015 | 🟢 | `PitchView` draws the frame; `Main` paces it with a fixed-step accumulator |
+| MATCH-016 | 🟢 | Headless smoke test compares the rendered digest against the headless run |
+
+**MATCH-01: 🟢** — the scene watches a whole match and reproduces the headless digest for the
+same seed, which is the assertion that distinguishes rendering the simulation from imitating
+it. Kits, sprites and camera are not here: 22 dots, a ball and the markings a viewer needs to
+read the pitch.
 
 `Run` is defined as `Begin` plus a loop over `Advance`, so the watched and headless paths are
 the same code rather than two implementations that agree today. A test still asserts a stepped

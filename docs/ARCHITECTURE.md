@@ -150,6 +150,23 @@ The timestep does not change for display. ADR-0004 fixes it because a different 
 a different simulation; a renderer advances the same 50 ms steps and interpolates for smooth
 motion if it wants to.
 
+### The Godot side
+
+`PitchView` draws a frame and knows nothing else — not how a match is run, not how fast, not
+what happens next. `Main` owns the pacing: a fixed-step accumulator converts real elapsed time
+into whole 50 ms ticks, so `SOCCER_MATCH_SPEED` changes how many steps a second buys and never
+how long a step is. Catch-up within a frame is capped, because an uncapped backlog grows faster
+than a frame can clear it and the window stops responding.
+
+Players are coloured by side rather than by club. Club colours belong to `KitDefinition` and the
+Club editor; inventing them here would create a second source of truth for them.
+
+**The smoke test compares digests, not pixels.** `scripts/godot-smoke-test.sh` reads the
+headless runner's digest for seed 1, then runs the scene headless on the same save and seed and
+requires the same digest back. A scene that merely looked plausible would pass an eyeball check
+and fail this one, which is the difference between rendering the simulation and imitating it.
+CI gates it, and a `timeout` guards against a scene that never finishes.
+
 ### Arithmetic discipline
 
 The simulation restricts itself to `+`, `-`, `*`, `/` and `sqrt`. IEEE-754 requires those to be correctly rounded, so they produce identical results on any conforming machine. `Sin`, `Cos`, `Atan2`, `Pow`, `Exp` and `Log` carry no such requirement and can differ between platforms and runtime versions.

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource path="res://Main.cs" type="Script" id="1_main"]
+[ext_resource path="res://PitchView.cs" type="Script" id="2_pitch"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -11,19 +12,26 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Pitch" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = 32.0
-offset_right = -32.0
-offset_bottom = -32.0
+offset_left = 16.0
+offset_top = 48.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("2_pitch")
 
-[node name="RosterLabel" type="Label" parent="Margin"]
-layout_mode = 2
-text = "SoccerDreamGame FOUNDATION-00"
-autowrap_mode = 2
+[node name="Status" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = -16.0
+offset_bottom = 40.0
+grow_horizontal = 2
+text = "SoccerDreamGame"
