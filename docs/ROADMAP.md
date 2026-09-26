@@ -111,6 +111,23 @@ Two bugs found by measuring rather than reading, both documented in `ARCHITECTUR
 
 The foundation contracts held: match isolation, the checkpoint boundary and the deterministic apply order all absorbed real football without being reshaped. The only Foundation contract that moved is the one that was explicitly marked provisional — the timestep.
 
+## MATCH-01 — watchable match
+
+The same simulation, now consumable a tick at a time so something can draw it. No second
+engine, no replay format, no second set of football rules.
+
+| ID | Status | Deliverable |
+|---|---|---|
+| MATCH-012 | 🟢 | `Begin` / `Advance` / `Result` — and `Run` rewritten in terms of them |
+| MATCH-013 | 🟢 | `MatchFrame` — ball, 22 players, clock, score; copied out, never a view |
+| MATCH-014 | 🟢 | `CareerApplication.BeginMatch`, sharing one match-context builder with `RunMatch` |
+| MATCH-015 | ⬜ | Godot scene drawing the frame at the fixed timestep |
+| MATCH-016 | ⬜ | Headless assertion that the scene advanced a real match |
+
+`Run` is defined as `Begin` plus a loop over `Advance`, so the watched and headless paths are
+the same code rather than two implementations that agree today. A test still asserts a stepped
+match reproduces the headless digest, because that is the claim the whole milestone rests on.
+
 ## MOD-00 — mod format
 
 `ADR-0007` closes the owner decision on what a mod is, and every clause it states is now

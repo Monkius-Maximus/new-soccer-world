@@ -130,6 +130,26 @@ A match is spatial and advances on the centralized fixed timestep. Twenty-two pl
 
 `MatchSimulation` receives a world snapshot and owns everything it mutates — two teams, a ball, its own `IRandomSource`. It never writes to the world it came from, and returns a `MatchResult` carrying the score, the ordered event stream and a digest. `CareerApplication` applies that result later, in the deterministic order described in section 1.
 
+### Watching a match (MATCH-01)
+
+A renderer consumes the simulation rather than containing one. `MatchSimulation.Begin` returns
+a match the caller advances itself, `Advance` executes exactly one fixed tick, and
+`CurrentFrame` hands back what there is to draw.
+
+`Run` is written as `Begin` plus a loop over `Advance`. That matters more than it looks: the
+headless path and the rendered path are literally the same code, so they cannot drift into
+producing different football. Two implementations that agree today are a bug waiting for
+someone to touch one of them.
+
+A `MatchFrame` is a copy, not a window. Positions, score and clock are read out into value
+types, so a renderer holding a frame cannot move a player or change the result of the match it
+is watching — the same isolation the world already has from a match. A test steps a whole
+match while reading every frame and asserts the digest still matches the unwatched run.
+
+The timestep does not change for display. ADR-0004 fixes it because a different tick length is
+a different simulation; a renderer advances the same 50 ms steps and interpolates for smooth
+motion if it wants to.
+
 ### Arithmetic discipline
 
 The simulation restricts itself to `+`, `-`, `*`, `/` and `sqrt`. IEEE-754 requires those to be correctly rounded, so they produce identical results on any conforming machine. `Sin`, `Cos`, `Atan2`, `Pow`, `Exp` and `Log` carry no such requirement and can differ between platforms and runtime versions.

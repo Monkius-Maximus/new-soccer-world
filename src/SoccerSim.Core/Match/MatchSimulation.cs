@@ -61,34 +61,76 @@ public sealed class MatchSimulation
         _contenders = new int[_everyone.Length];
     }
 
+    /// <summary>
+    /// Runs a whole match and returns its result. This is the headless path, and it is written
+    /// in terms of <see cref="Advance"/> on purpose: a renderer that steps the match sees the
+    /// same code, so the two cannot drift into producing different football.
+    /// </summary>
     public static MatchResult Run(MatchContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        return new MatchSimulation(context).Execute();
+        var simulation = Begin(context);
+        while (simulation.Advance())
+        {
+        }
+        return simulation.Result;
     }
 
-    private MatchResult Execute()
+    /// <summary>
+    /// Starts a match the caller advances itself, one fixed tick at a time. For a renderer:
+    /// step, read <see cref="CurrentFrame"/>, draw, repeat.
+    /// <para>
+    /// The timestep is not negotiable here. ADR-0004 fixes it because a different tick length
+    /// is a different simulation — intermediate events disappear — so a renderer advances the
+    /// same 50 ms steps the headless run does and interpolates for display if it wants smooth
+    /// motion.
+    /// </para>
+    /// </summary>
+    public static MatchSimulation Begin(MatchContext context)
     {
-        KickOff(_home);
+        ArgumentNullException.ThrowIfNull(context);
+        var simulation = new MatchSimulation(context);
+        simulation.KickOff(simulation._home);
+        return simulation;
+    }
 
-        for (_tick = 0; _tick < _totalTicks; _tick++)
+    public bool IsFinished => _tick >= _totalTicks;
+
+    /// <summary>
+    /// Advances exactly one tick. Returns whether a tick was executed, so a caller loops
+    /// <c>while (simulation.Advance())</c> and sees every tick of the match.
+    /// </summary>
+    public bool Advance()
+    {
+        if (IsFinished)
         {
-            if (_tick == _totalTicks / 2)
-            {
-                Record(MatchEventKind.HalfTime, 0, 0);
-                _home.SwapEnds();
-                _away.SwapEnds();
-                KickOff(_away);
-            }
-
-            AdvanceBall();
-            MovePlayers();
-            MixIntoDigest();
+            return false;
         }
 
-        Record(MatchEventKind.FullTime, 0, 0);
+        if (_tick == _totalTicks / 2)
+        {
+            Record(MatchEventKind.HalfTime, 0, 0);
+            _home.SwapEnds();
+            _away.SwapEnds();
+            KickOff(_away);
+        }
 
-        return new MatchResult(
+        AdvanceBall();
+        MovePlayers();
+        MixIntoDigest();
+
+        _tick++;
+
+        if (IsFinished)
+        {
+            Record(MatchEventKind.FullTime, 0, 0);
+        }
+
+        return true;
+    }
+
+    /// <summary>The finished match. Throws while the match is still running.</summary>
+    public MatchResult Result => IsFinished
+        ? new MatchResult(
             _home.ClubId,
             _away.ClubId,
             _home.Score,
@@ -98,7 +140,38 @@ public sealed class MatchSimulation
             _totalTicks,
             _digest,
             _random.State,
-            _events);
+            _events)
+        : throw new InvalidOperationException(
+            $"The match is at tick {_tick} of {_totalTicks}. Advance until it returns false.");
+
+    /// <summary>
+    /// What a renderer needs to draw the current tick: the ball, the twenty-two players, the
+    /// clock and the score.
+    /// <para>
+    /// Every value is copied out. A frame is a snapshot, not a window onto the simulation's own
+    /// state, so a renderer holding one cannot move a player and cannot change the result of
+    /// the match it is watching. That is the same isolation ADR-0002 gives the world.
+    /// </para>
+    /// </summary>
+    public MatchFrame CurrentFrame()
+    {
+        var players = new PlayerFrame[_everyone.Length];
+        for (var i = 0; i < _everyone.Length; i++)
+        {
+            var player = _everyone[i];
+            players[i] = new PlayerFrame(player.PlayerId, player.ClubId, player.Slot, player.Location);
+        }
+
+        return new MatchFrame(
+            _tick,
+            _totalTicks,
+            Minute,
+            _home.ClubId,
+            _away.ClubId,
+            _home.Score,
+            _away.Score,
+            _ballLocation,
+            players);
     }
 
     private int Minute => (int)(_tick * _secondsPerTick / 60.0);

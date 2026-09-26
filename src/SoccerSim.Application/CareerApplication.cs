@@ -89,17 +89,31 @@ public sealed class CareerApplication
     /// Runs a match against an isolated snapshot and returns its outcome. Nothing is applied to
     /// the career here — see <see cref="ApplyOutcomes"/>.
     /// </summary>
-    public MatchOutcome RunMatch(ActiveCareer career, int homeClubId, int awayClubId, ulong seed)
-    {
-        var context = new MatchContext(
-            homeClubId,
-            awayClubId,
-            seed,
-            SimulationSettings.SimulationVersion,
-            career.World.Snapshot());
+    public MatchOutcome RunMatch(ActiveCareer career, int homeClubId, int awayClubId, ulong seed) =>
+        new(homeClubId, awayClubId, MatchSimulation.Run(ContextFor(career, homeClubId, awayClubId, seed)));
 
-        return new MatchOutcome(homeClubId, awayClubId, MatchSimulation.Run(context));
-    }
+    /// <summary>
+    /// Begins a match the caller advances itself, which is how a renderer consumes one: step a
+    /// tick, read <c>CurrentFrame()</c>, draw, repeat.
+    /// <para>
+    /// It is the same simulation the headless path runs, against the same kind of isolated
+    /// snapshot. Watching a match cannot change the career it came from, and a rendered match
+    /// reproduces its seed exactly as a headless one does.
+    /// </para>
+    /// </summary>
+    public MatchSimulation BeginMatch(ActiveCareer career, int homeClubId, int awayClubId, ulong seed) =>
+        MatchSimulation.Begin(ContextFor(career, homeClubId, awayClubId, seed));
+
+    /// <summary>
+    /// The one place a match context is built, so the watched and headless paths cannot be
+    /// handed different worlds, seeds or simulation versions.
+    /// </summary>
+    private static MatchContext ContextFor(
+        ActiveCareer career,
+        int homeClubId,
+        int awayClubId,
+        ulong seed) =>
+        new(homeClubId, awayClubId, seed, SimulationSettings.SimulationVersion, career.World.Snapshot());
 
     /// <summary>
     /// Applies finished outcomes to the career world in a deterministic order.
