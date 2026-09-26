@@ -30,11 +30,21 @@ echo "==> Building world template and a career save"
 rm -rf artifacts saves
 dotnet run --project tools/SoccerSim.WorldBuilder --configuration Release \
     -- --output artifacts/world_template.db
-dotnet run --project tools/SoccerSim.HeadlessRunner --configuration Release \
-    -- --template artifacts/world_template.db --seed 1 >/dev/null
+RUNNER_OUTPUT=$(dotnet run --project tools/SoccerSim.HeadlessRunner --configuration Release \
+    -- --template artifacts/world_template.db --seed 1)
 
 SAVE_DB="$REPO_ROOT/$(find saves -name world.db | head -1)"
 [ -f "$SAVE_DB" ] || { echo "No career world.db was produced." >&2; exit 3; }
+
+# The digest the packaged build has to reproduce. Launching is not evidence that the artifact
+# runs the same football; matching this is.
+EXPECTED_DIGEST=$(sed -n 's/^Seed 1:.*digest=\([0-9A-F]\{16\}\).*$/\1/p' <<<"$RUNNER_OUTPUT" | head -1)
+if [ -z "$EXPECTED_DIGEST" ]; then
+    echo "Could not read the headless digest for seed 1." >&2
+    echo "$RUNNER_OUTPUT" >&2
+    exit 4
+fi
+echo "==> Headless digest for seed 1: $EXPECTED_DIGEST"
 
 # Godot refuses to export into a directory that does not already exist.
 mkdir -p artifacts/export/linux artifacts/export/windows
@@ -70,13 +80,32 @@ for data_dir in artifacts/export/linux/data_* artifacts/export/windows/data_*; d
         echo "FAIL: $data_dir does not contain the game assembly." >&2; exit 1; }
 done
 
-echo "==> Running the exported Linux release build"
+# The scene watches a whole match, so it has to be paced far above real time or this step
+# would wait ninety minutes for one. Same 50 ms timestep, just more steps per second.
+# `timeout` is the guard against an exported build that starts and then never finishes.
+echo "==> Running the exported Linux release build (watching a full match)"
+set +e
 OUTPUT=$(cd artifacts/export/linux && SOCCER_SAVE_DB="$SAVE_DB" SOCCER_SMOKE_EXIT=1 \
-    ./SoccerDreamGame.x86_64 --headless 2>&1)
+    SOCCER_MATCH_SEED=1 SOCCER_MATCH_SPEED=4000 \
+    timeout 300 ./SoccerDreamGame.x86_64 --headless 2>&1)
+STATUS=$?
+set -e
 echo "$OUTPUT"
 
+if [ "$STATUS" -eq 124 ]; then
+    echo "FAIL: the exported build did not finish its match within 300s." >&2
+    exit 1
+fi
+
 if ! grep -q "\[SOCCER-SMOKE\] clubs=2 players=30" <<<"$OUTPUT"; then
-    echo "FAIL: the exported build did not render the seeded clubs." >&2
+    echo "FAIL: the exported build did not reach the Application layer." >&2
+    exit 1
+fi
+
+# The packaged artifact has to run the same football as everything else, not merely launch.
+if ! grep -q "\[SOCCER-SMOKE\] match .*digest=${EXPECTED_DIGEST}" <<<"$OUTPUT"; then
+    echo "FAIL: the exported build did not reproduce the headless digest for seed 1." >&2
+    echo "      expected digest=${EXPECTED_DIGEST}" >&2
     exit 1
 fi
 

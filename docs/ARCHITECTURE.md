@@ -167,6 +167,11 @@ requires the same digest back. A scene that merely looked plausible would pass a
 and fail this one, which is the difference between rendering the simulation and imitating it.
 CI gates it, and a `timeout` guards against a scene that never finishes.
 
+`scripts/godot-export-test.sh` applies the same check to the packaged build, for the reason
+CONS-007 already established: a working editor is not evidence that the artifact which ships
+works. Both scripts pace the match far above real time — the same 50 ms timestep, more steps per
+second — because at default speed a verification step would wait ninety minutes for one match.
+
 ### Arithmetic discipline
 
 The simulation restricts itself to `+`, `-`, `*`, `/` and `sqrt`. IEEE-754 requires those to be correctly rounded, so they produce identical results on any conforming machine. `Sin`, `Cos`, `Atan2`, `Pow`, `Exp` and `Log` carry no such requirement and can differ between platforms and runtime versions.
